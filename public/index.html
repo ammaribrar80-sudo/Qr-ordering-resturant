@@ -150,6 +150,7 @@
     <p class="hero-subtitle">Interactive QR-based guest menu and real-time staff kitchen dashboard. No app download needed.</p>
     <div class="hero-cta">
       <a href="/menu?table=1" class="btn btn-primary btn-lg">Open Table 1 Guest Menu</a>
+      <button id="heroScanBtn" class="btn btn-lg" style="background: rgba(255,255,255,0.15); color: #fff; border: 1.5px solid rgba(255,255,255,0.35);">📱 Scan QR with Phone</button>
       <a href="/admin" class="btn btn-dark btn-lg">Staff Dashboard (PIN: 2468)</a>
     </div>
   </header>
@@ -157,7 +158,7 @@
   <main class="main-container">
     <div class="table-picker-card">
       <h2 class="card-title">Simulate a Table QR Scan</h2>
-      <p class="card-sub">Choose any table to open the guest menu with the table preset:</p>
+      <p class="card-sub">Click any table to open its menu, or use the QR button to scan from your phone:</p>
       <div class="table-grid" id="tablesContainer">
         <!-- Tables generated via JS -->
       </div>
@@ -184,7 +185,74 @@
     </div>
   </main>
 
+  <!-- QR Code Modal -->
+  <div class="modal-overlay" id="qrModal">
+    <div class="modal-card" style="text-align: center; max-width: 400px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="qrModalTitle">Table 1 QR Code</h3>
+        <button class="modal-close" id="closeQrModal" aria-label="Close">&times;</button>
+      </div>
+      <div id="qrModalSvg" style="margin: 12px auto; max-width: 220px; min-height: 220px; display: flex; align-items: center; justify-content: center;">
+        <span style="color: var(--muted);">Loading QR...</span>
+      </div>
+      <div style="font-size: 12px; color: var(--muted); word-break: break-all; margin: 10px 0;" id="qrModalUrl"></div>
+      <div style="background: var(--cream); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 12px; font-size: 12.5px; text-align: left; margin: 16px 0; line-height: 1.5;">
+        📶 <strong>Phone requirement:</strong> Ensure your mobile phone is connected to the same Wi-Fi network as this computer to open the menu.
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button class="btn btn-outline btn-sm" id="copyModalUrlBtn">📋 Copy Link</button>
+        <a id="openModalUrlBtn" href="#" class="btn btn-primary btn-sm" target="_blank">Open in Browser</a>
+      </div>
+    </div>
+  </div>
+
   <script>
+    const qrModal = document.getElementById('qrModal');
+    const closeQrModal = document.getElementById('closeQrModal');
+    const qrModalTitle = document.getElementById('qrModalTitle');
+    const qrModalSvg = document.getElementById('qrModalSvg');
+    const qrModalUrl = document.getElementById('qrModalUrl');
+    const openModalUrlBtn = document.getElementById('openModalUrlBtn');
+    const copyModalUrlBtn = document.getElementById('copyModalUrlBtn');
+    let currentModalLink = '';
+
+    function showQrForTable(tableNum) {
+      qrModalTitle.textContent = `Table ${tableNum} QR Code`;
+      qrModalSvg.innerHTML = '<span style="color: var(--muted);">Generating QR...</span>';
+      qrModalUrl.textContent = '';
+      qrModal.classList.add('active');
+
+      fetch(`/api/qr?table=${tableNum}&json=1`)
+        .then(res => res.json())
+        .then(data => {
+          qrModalSvg.innerHTML = data.svg;
+          qrModalUrl.textContent = data.url;
+          currentModalLink = data.url;
+          openModalUrlBtn.href = data.url;
+        })
+        .catch(err => {
+          qrModalSvg.innerHTML = `<span style="color: var(--red);">Failed to load QR code.</span>`;
+        });
+    }
+
+    closeQrModal.addEventListener('click', () => qrModal.classList.remove('active'));
+    qrModal.addEventListener('click', (e) => {
+      if (e.target === qrModal) qrModal.classList.remove('active');
+    });
+
+    document.getElementById('heroScanBtn').addEventListener('click', () => {
+      showQrForTable(1);
+    });
+
+    copyModalUrlBtn.addEventListener('click', () => {
+      if (!currentModalLink) return;
+      navigator.clipboard.writeText(currentModalLink).then(() => {
+        const orig = copyModalUrlBtn.textContent;
+        copyModalUrlBtn.textContent = '✅ Copied!';
+        setTimeout(() => { copyModalUrlBtn.textContent = orig; }, 2000);
+      });
+    });
+
     fetch('/api/menu')
       .then(res => res.json())
       .then(data => {
@@ -192,21 +260,21 @@
         const container = document.getElementById('tablesContainer');
         container.innerHTML = '';
         for (let i = 1; i <= count; i++) {
-          const a = document.createElement('a');
-          a.href = `/menu?table=${i}`;
-          a.className = 'table-btn';
-          a.innerHTML = `<span class="label">Table</span><span class="num">${i}</span>`;
-          container.appendChild(a);
+          const div = document.createElement('div');
+          div.className = 'table-btn';
+          div.innerHTML = `<span class="label">Table</span><span class="num">${i}</span><span style="font-size:10px; opacity:0.8; margin-top:2px;">📱 QR</span>`;
+          div.addEventListener('click', () => showQrForTable(i));
+          container.appendChild(div);
         }
       })
       .catch(() => {
         const container = document.getElementById('tablesContainer');
         for (let i = 1; i <= 17; i++) {
-          const a = document.createElement('a');
-          a.href = `/menu?table=${i}`;
-          a.className = 'table-btn';
-          a.innerHTML = `<span class="label">Table</span><span class="num">${i}</span>`;
-          container.appendChild(a);
+          const div = document.createElement('div');
+          div.className = 'table-btn';
+          div.innerHTML = `<span class="label">Table</span><span class="num">${i}</span><span style="font-size:10px; opacity:0.8; margin-top:2px;">📱 QR</span>`;
+          div.addEventListener('click', () => showQrForTable(i));
+          container.appendChild(div);
         }
       });
   </script>
