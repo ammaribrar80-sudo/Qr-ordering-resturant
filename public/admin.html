@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff Dashboard — Barbeque Nation</title>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header class="admin-header">
+    <div class="admin-header-title">
+      <span>🔥</span>
+      <span id="navResName">Barbeque Nation</span>
+      <span style="font-size: 13px; font-weight: normal; opacity: 0.75; font-family: var(--font-sans);">Kitchen &amp; Operations</span>
+    </div>
+    <div class="admin-header-actions">
+      <button class="chime-toggle" id="chimeToggleBtn">
+        <span id="chimeIcon">🔔</span>
+        <span id="chimeLabel">Sound Alert: ON</span>
+      </button>
+      <button class="btn btn-outline btn-sm" id="logoutBtn" style="color: #fff; border-color: rgba(255,255,255,0.3); background: transparent;">
+        Sign Out
+      </button>
+    </div>
+  </header>
+
+  <!-- Tabs Navigation -->
+  <nav class="admin-nav">
+    <div class="admin-nav-item active" data-tab="orders">
+      <span>📋 Live Orders</span>
+      <span class="counter-badge" id="newOrdersCount" style="display: none;">0</span>
+    </div>
+    <div class="admin-nav-item" data-tab="menu">
+      <span>🍴 Menu Items</span>
+    </div>
+    <div class="admin-nav-item" data-tab="tables">
+      <span>🏷️ Tables &amp; QR</span>
+    </div>
+    <div class="admin-nav-item" data-tab="settings">
+      <span>⚙️ Settings</span>
+    </div>
+  </nav>
+
+  <!-- Body Content -->
+  <main class="admin-body">
+
+    <!-- Tab 1: Orders -->
+    <section id="tab-orders" class="tab-pane active">
+      <div class="orders-toolbar">
+        <div class="status-filter-pills" id="orderFilterPills">
+          <button class="btn btn-sm btn-dark filter-pill active" data-filter="all">All Orders</button>
+          <button class="btn btn-sm btn-outline filter-pill" data-filter="new">New</button>
+          <button class="btn btn-sm btn-outline filter-pill" data-filter="preparing">Preparing</button>
+          <button class="btn btn-sm btn-outline filter-pill" data-filter="ready">Ready</button>
+          <button class="btn btn-sm btn-outline filter-pill" data-filter="completed">Completed</button>
+          <button class="btn btn-sm btn-outline filter-pill" data-filter="cancelled">Cancelled</button>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <a href="/api/admin/orders.csv" class="btn btn-outline btn-sm">📥 Export CSV</a>
+          <button class="btn btn-outline btn-sm" id="refreshOrdersBtn">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <div class="orders-grid" id="ordersContainer">
+        <div style="text-align: center; grid-column: 1/-1; padding: 40px; color: var(--muted);">Loading orders...</div>
+      </div>
+    </section>
+
+    <!-- Tab 2: Menu Management -->
+    <section id="tab-menu" class="tab-pane" style="display: none;">
+      <div class="menu-mgmt-header">
+        <div>
+          <h2 style="font-family: var(--font-serif); font-size: 24px;">Menu &amp; Categories</h2>
+          <p style="font-size: 14px; color: var(--muted);">Manage dishes, live stock availability, and categories</p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn btn-outline btn-sm" id="addCategoryBtn">+ New Category</button>
+          <button class="btn btn-primary btn-sm" id="addItemBtn">+ Add Dish / Item</button>
+        </div>
+      </div>
+
+      <div id="menuCategoriesContainer">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+    <!-- Tab 3: Tables & QR Codes -->
+    <section id="tab-tables" class="tab-pane" style="display: none;">
+      <div class="menu-mgmt-header">
+        <div>
+          <h2 style="font-family: var(--font-serif); font-size: 24px;">Table QR Codes</h2>
+          <p style="font-size: 14px; color: var(--muted);" id="qrAddressHelp">
+            Print or download table cards. Each code links directly to that table's ordering page.
+          </p>
+        </div>
+        <a href="/api/admin/qr-sheet" target="_blank" class="btn btn-primary btn-sm">🖨️ Print All Codes Sheet</a>
+      </div>
+
+      <div class="qr-tables-grid" id="tablesQrContainer">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+    <!-- Tab 4: Settings -->
+    <section id="tab-settings" class="tab-pane" style="display: none;">
+      <div class="settings-card">
+        <h2 style="font-family: var(--font-serif); font-size: 22px; margin-bottom: 20px;">Restaurant Settings</h2>
+        <form id="settingsForm">
+          <div class="form-group">
+            <label class="form-label" for="settingResName">Restaurant Name</label>
+            <input type="text" id="settingResName" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="settingOutletName">Outlet / Location</label>
+            <input type="text" id="settingOutletName" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="settingTagline">Tagline</label>
+            <input type="text" id="settingTagline" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="settingCurrency">Currency Symbol</label>
+            <input type="text" id="settingCurrency" class="form-input" style="max-width: 120px;" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="settingTableCount">Number of Tables (1 - 100)</label>
+            <input type="number" id="settingTableCount" class="form-input" min="1" max="100" style="max-width: 140px;" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="settingFooterNote">Footer Allergy &amp; Legal Note</label>
+            <textarea id="settingFooterNote" class="form-textarea"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary" id="saveSettingsBtn">Save Settings</button>
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Login Modal -->
+  <div class="modal-overlay" id="loginModal">
+    <div class="modal-card" style="max-width: 380px; text-align: center;">
+      <div style="font-size: 40px; margin-bottom: 8px;">🔐</div>
+      <h3 class="modal-title" style="margin-bottom: 6px;">Staff Passcode</h3>
+      <p style="font-size: 13.5px; color: var(--muted); margin-bottom: 20px;">Enter your staff dashboard PIN (Default: <strong>2468</strong>)</p>
+      <form id="loginForm">
+        <div class="form-group">
+          <input type="password" id="pinInput" class="form-input" placeholder="Enter PIN" style="font-size: 22px; text-align: center; letter-spacing: 0.3em; padding: 12px;" required autofocus autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 8px;" id="loginBtn">Sign In</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Item Modal (Add/Edit) -->
+  <div class="modal-overlay" id="itemModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="itemModalTitle">Add Menu Item</h3>
+        <button class="modal-close" id="closeItemModal">&times;</button>
+      </div>
+      <form id="itemForm">
+        <input type="hidden" id="itemId">
+        <div class="form-group">
+          <label class="form-label" for="itemName">Dish Name</label>
+          <input type="text" id="itemName" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="itemCategory">Category</label>
+          <select id="itemCategory" class="form-select" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="itemPrice">Price</label>
+          <input type="number" id="itemPrice" class="form-input" min="0" step="0.5" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="itemEmoji">Emoji Icon</label>
+          <input type="text" id="itemEmoji" class="form-input" placeholder="🍢" style="max-width: 100px;">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="itemTag">Tag (e.g. Vegetarian, Non-veg, Bestseller)</label>
+          <input type="text" id="itemTag" class="form-input" placeholder="Vegetarian">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="itemDesc">Description</label>
+          <textarea id="itemDesc" class="form-textarea" placeholder="Ingredients, taste, preparation..."></textarea>
+        </div>
+        <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="itemAvailable" checked style="width: 18px; height: 18px;">
+          <label for="itemAvailable" style="font-size: 14px; font-weight: 600;">In Stock &amp; Available</label>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Save Dish</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Category Modal (Add/Edit) -->
+  <div class="modal-overlay" id="categoryModal">
+    <div class="modal-card" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="categoryModalTitle">Add Category</h3>
+        <button class="modal-close" id="closeCategoryModal">&times;</button>
+      </div>
+      <form id="categoryForm">
+        <input type="hidden" id="categoryId">
+        <div class="form-group">
+          <label class="form-label" for="categoryName">Category Name</label>
+          <input type="text" id="categoryName" class="form-input" placeholder="e.g. Desserts, Beverages" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Save Category</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/js/admin.js"></script>
+</body>
+</html>

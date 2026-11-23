@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Menu — Barbeque Nation</title>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/menu.css">
+</head>
+<body class="menu-page">
+
+  <!-- Header -->
+  <header class="menu-header">
+    <div class="menu-header-inner">
+      <div>
+        <h1 class="brand-title" id="restaurantName">Barbeque Nation</h1>
+        <div class="brand-outlet" id="outletName">Sentrum Mall, Kanyapur, Asansol</div>
+        <div class="brand-tagline" id="tagline">Live grills &amp; buffet</div>
+      </div>
+      <div class="table-badge-card">
+        <span class="table-badge-label">Table</span>
+        <span class="table-badge-num" id="tableNumDisplay">—</span>
+        <button class="table-change-btn" id="changeTableBtn">Change Table</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sticky Category Navigation -->
+  <div class="category-nav-wrapper">
+    <nav class="category-nav" id="categoryNav">
+      <!-- Generated via JS -->
+    </nav>
+  </div>
+
+  <!-- Search & Tag Filters -->
+  <div class="filter-bar">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" class="form-input" placeholder="Search dishes, drinks, desserts...">
+    </div>
+    <div class="tag-filters">
+      <button class="tag-btn active" data-tag="all">All</button>
+      <button class="tag-btn" data-tag="Vegetarian">🌱 Veg</button>
+      <button class="tag-btn" data-tag="Non-veg">🍗 Non-veg</button>
+      <button class="tag-btn" data-tag="Bestseller">⭐ Bestseller</button>
+    </div>
+  </div>
+
+  <!-- Menu Content Sections -->
+  <main class="menu-content" id="menuContent">
+    <div style="text-align:center; padding: 40px; color: var(--muted);">Loading menu...</div>
+  </main>
+
+  <!-- Floating Cart Bar -->
+  <div class="cart-floating-bar" id="cartFloatingBar">
+    <div class="cart-bar-info">
+      <span class="cart-bar-count" id="cartBarCount">0 items</span>
+      <span class="cart-bar-total" id="cartBarTotal">₹0.00</span>
+    </div>
+    <button class="btn btn-primary" id="openCartBtn">View Cart &rarr;</button>
+  </div>
+
+  <!-- Cart Drawer Overlay -->
+  <div class="cart-drawer-overlay" id="cartDrawerOverlay">
+    <aside class="cart-drawer" id="cartDrawer">
+      <div class="cart-drawer-header">
+        <h2 style="font-family: var(--font-serif); font-size: 20px;">Your Table Order</h2>
+        <button class="modal-close" id="closeCartBtn">&times;</button>
+      </div>
+
+      <div class="cart-drawer-body">
+        <div style="margin-bottom: 14px; padding: 10px 14px; background: var(--cream); border-radius: var(--radius-sm); font-size: 13.5px; display: flex; justify-content: space-between;">
+          <span>Ordering for:</span>
+          <strong>Table <span id="cartTableNum">1</span></strong>
+        </div>
+
+        <div id="cartItemsList">
+          <!-- Cart items injected here -->
+        </div>
+
+        <div class="form-group" style="margin-top: 20px;">
+          <label class="form-label" for="orderNote">Special Kitchen Instructions (Optional)</label>
+          <textarea id="orderNote" class="form-textarea" placeholder="E.g., extra spicy, no onions, allergies..."></textarea>
+        </div>
+      </div>
+
+      <div class="cart-drawer-footer">
+        <div class="bill-row">
+          <span>Subtotal</span>
+          <span id="cartSubtotal">₹0.00</span>
+        </div>
+        <div class="bill-row total">
+          <span>Total</span>
+          <span id="cartTotal">₹0.00</span>
+        </div>
+        <button class="btn btn-primary btn-lg" id="submitOrderBtn" style="width: 100%; margin-top: 14px;">
+          Send Order to Kitchen
+        </button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Change Table Modal -->
+  <div class="modal-overlay" id="tableModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Select Your Table</h3>
+        <button class="modal-close" id="closeTableModal">&times;</button>
+      </div>
+      <p style="font-size: 14px; color: var(--muted); margin-bottom: 16px;">
+        Look for the number card on your table stand:
+      </p>
+      <div class="form-group">
+        <select id="tableSelect" class="form-select" style="font-size: 16px; padding: 12px;">
+          <!-- Options populated via JS -->
+        </select>
+      </div>
+      <button class="btn btn-primary" id="saveTableBtn" style="width: 100%; margin-top: 10px;">
+        Confirm Table
+      </button>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/js/menu.js"></script>
+</body>
+</html>
