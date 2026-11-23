@@ -142,7 +142,21 @@ function getLanIP() {
 }
 
 const LAN_IP = getLanIP();
-const BASE_URL = (process.env.PUBLIC_URL || '').trim().replace(/\/+$/, '') || `http://${LAN_IP}:${PORT}`;
+let currentPort = PORT;
+let BASE_URL = (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || '').trim().replace(/\/+$/, '') || `http://${LAN_IP}:${PORT}`;
+
+function getBaseUrl(req) {
+  const explicit = (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || '').trim().replace(/\/+$/, '');
+  if (explicit) return explicit;
+  if (req) {
+    const proto = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+    const host = req.headers['x-forwarded-host'] || req.headers.host;
+    if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+      return `${proto}://${host}`;
+    }
+  }
+  return BASE_URL || `http://${LAN_IP}:${currentPort}`;
+}
 
 function allow(key, max, windowMs) {
   const now = Date.now();
@@ -249,6 +263,7 @@ function publicRestaurant() {
 /* ------------------------------------------------------------------ */
 
 const app = express();
+app.set('trust proxy', 1);
 app.disable('x-powered-by');
 app.use(express.json({ limit: '100kb' }));
 app.use((req, res, next) => {
@@ -261,6 +276,27 @@ app.use((req, res, next) => {
 /* ---------- Public API ---------- */
 
 app.get('/api/health', (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
+
+app.get('/api/qr', async (req, res, next) => {
+  try {
+    const baseUrl = getBaseUrl(req);
+    const table = Math.max(1, parseInt(req.query.table, 10) || 1);
+    const url = `${baseUrl}/menu?table=${table}`;
+    const svg = await QRCode.toString(url, {
+      type: 'svg',
+      margin: 3,
+      width: 240,
+      errorCorrectionLevel: 'M',
+      color: { dark: '#000000', light: '#ffffff' },
+    });
+    if (req.query.json === '1') {
+      return res.json({ table, url, svg, baseUrl });
+    }
+    res.type('image/svg+xml').send(svg);
+  } catch (err) {
+    next(err);
+  }
+});
 
 app.get('/api/menu', (req, res) => {
   res.json({
@@ -595,19 +631,20 @@ app.patch('/api/admin/settings', requireAdmin, (req, res, next) => {
 
 app.get('/api/admin/tables', requireAdmin, async (req, res, next) => {
   try {
+    const baseUrl = getBaseUrl(req);
     const tables = [];
     for (let table = 1; table <= db.settings.tableCount; table += 1) {
-      const url = `${BASE_URL}/menu?table=${table}`;
+      const url = `${baseUrl}/menu?table=${table}`;
       const svg = await QRCode.toString(url, {
         type: 'svg',
-        margin: 1,
+        margin: 3,
         width: 240,
         errorCorrectionLevel: 'M',
-        color: { dark: '#1f3d2f', light: '#fffdf8' },
+        color: { dark: '#000000', light: '#ffffff' },
       });
       tables.push({ table, url, svg });
     }
-    res.json({ baseUrl: BASE_URL, lanUrl: `http://${LAN_IP}:${PORT}`, tables });
+    res.json({ baseUrl, lanUrl: `http://${LAN_IP}:${currentPort}`, tables });
   } catch (err) {
     next(err);
   }
@@ -616,15 +653,16 @@ app.get('/api/admin/tables', requireAdmin, async (req, res, next) => {
 app.get('/api/admin/qr-sheet', async (req, res, next) => {
   try {
     if (!sessionFor(req)) return res.redirect('/admin');
+    const baseUrl = getBaseUrl(req);
     const cards = [];
     for (let table = 1; table <= db.settings.tableCount; table += 1) {
-      const url = `${BASE_URL}/menu?table=${table}`;
+      const url = `${baseUrl}/menu?table=${table}`;
       const svg = await QRCode.toString(url, {
         type: 'svg',
-        margin: 1,
+        margin: 3,
         width: 230,
         errorCorrectionLevel: 'M',
-        color: { dark: '#1f3d2f', light: '#ffffff' },
+        color: { dark: '#000000', light: '#ffffff' },
       });
       cards.push(`
         <article class="card">
@@ -702,19 +740,35 @@ app.use((err, req, res, next) => {
 /*  Start                                                              */
 /* ------------------------------------------------------------------ */
 
-app.listen(PORT, HOST, () => {
-  const line = '─'.repeat(52);
-  console.log(`\n  ${db.settings.restaurantName} is ready\n  ${line}`);
-  console.log(`  Menu (this device)   http://localhost:${PORT}/menu?table=1`);
-  console.log(`  Staff dashboard      http://localhost:${PORT}/admin`);
-  console.log(`  QR / phone address   ${BASE_URL}`);
-  console.log(`  Admin PIN            ${process.env.ADMIN_PIN ? 'set via ADMIN_PIN' : '2468  (set ADMIN_PIN to change)'}`);
-  if (BASE_URL.includes('localhost')) {
-    console.log('\n  Heads up: no LAN address was detected, so QR codes point to localhost.');
-    console.log('  Phones will not be able to open them. Set PUBLIC_URL to your computer\'s LAN URL.');
-  } else if (!process.env.PUBLIC_URL) {
-    console.log('\n  Phones on the same Wi-Fi can scan the QR codes using the address above.');
-    console.log('  If they cannot connect, allow Node through the firewall or set PUBLIC_URL.');
-  }
-  console.log(`  ${line}\n`);
-});
+function listenOnPort(port) {
+  const server = app.listen(port, HOST, () => {
+    currentPort = server.address().port;
+    BASE_URL = (process.env.PUBLIC_URL || '').trim().replace(/\/+$/, '') || `http://${LAN_IP}:${currentPort}`;
+    const line = '─'.repeat(52);
+    console.log(`\n  ${db.settings.restaurantName} is ready\n  ${line}`);
+    console.log(`  Menu (this device)   http://localhost:${currentPort}/menu?table=1`);
+    console.log(`  Staff dashboard      http://localhost:${currentPort}/admin`);
+    console.log(`  QR / phone address   ${BASE_URL}`);
+    console.log(`  Admin PIN            ${process.env.ADMIN_PIN ? 'set via ADMIN_PIN' : '2468  (set ADMIN_PIN to change)'}`);
+    if (BASE_URL.includes('localhost')) {
+      console.log('\n  Heads up: no LAN address was detected, so QR codes point to localhost.');
+      console.log('  Phones will not be able to open them. Set PUBLIC_URL to your computer\'s LAN URL.');
+    } else if (!process.env.PUBLIC_URL) {
+      console.log('\n  Phones on the same Wi-Fi can scan the QR codes using the address above.');
+      console.log('  If they cannot connect, allow Node through the firewall or set PUBLIC_URL.');
+    }
+    console.log(`  ${line}\n`);
+  });
+
+  server.on('error', (err) => {
+    if ((err.code === 'EADDRINUSE' || err.code === 'EACCES') && !process.env.PORT) {
+      const nextPort = port === 3000 ? 4000 : port === 4000 ? 5000 : port + 1;
+      console.warn(`\n  Port ${port} was busy or restricted (${err.code}). Trying port ${nextPort}...`);
+      listenOnPort(nextPort);
+    } else {
+      console.error('\n  Failed to start server:', err.message);
+    }
+  });
+}
+
+listenOnPort(PORT);
