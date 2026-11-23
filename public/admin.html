@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff dashboard — Barbeque Nation</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#1f3d2f">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/base.css?v=3">
+  <link rel="stylesheet" href="/css/admin.css?v=2">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='28' fill='%231f3d2f'/><text x='50' y='70' font-size='58' font-family='Georgia' text-anchor='middle' fill='%23f7f3ea'>C</text></svg>">
+</head>
+<body class="admin-body">
+  <!-- Login -->
+  <div class="login-view" id="loginView">
+    <div class="login-card">
+      <a class="brand" href="/">
+        <span class="brand-mark">C</span>
+        <span class="brand-text">
+          <strong>Barbeque Nation</strong>
+          <span>Staff dashboard</span>
+        </span>
+      </a>
+      <div class="login-heading">
+        <span class="eyebrow"><span class="dot"></span> Staff access</span>
+        <h1>Welcome back.</h1>
+        <p>Enter the kitchen PIN to see live orders and manage the restaurant.</p>
+      </div>
+      <form class="login-form" id="loginForm">
+        <label class="field">
+          <span>Dashboard PIN</span>
+          <input id="pinInput" type="password" inputmode="numeric" autocomplete="current-password" maxlength="20" placeholder="••••" aria-describedby="loginError">
+        </label>
+        <button class="btn btn-primary btn-block" id="loginBtn" type="submit">Sign in</button>
+        <p class="form-error hidden" id="loginError" role="alert"></p>
+      </form>
+      <p class="login-hint">Default demo PIN <code>2468</code> — set the <code>ADMIN_PIN</code> environment variable to change it.</p>
+      <a class="login-back" href="/">← Back to the website</a>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="appView" hidden>
+    <header class="admin-topbar">
+      <div class="admin-topbar-inner">
+        <a class="admin-brand" href="/" title="Back to the restaurant site">
+          <span class="admin-mark">C</span>
+          <div>
+            <strong id="adminRestaurantName">Barbeque Nation</strong>
+            <span>Staff dashboard</span>
+          </div>
+        </a>
+        <div class="topbar-actions">
+          <span class="live-indicator"><span class="live-dot"></span> Live</span>
+          <button class="topbar-btn" id="soundBtn" type="button" aria-pressed="true" title="Toggle new-order sound">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+            <span id="soundLabel">Sound on</span>
+          </button>
+          <a class="topbar-btn admin-site-link" href="/menu?table=1" target="_blank" rel="noopener">View menu</a>
+          <button class="topbar-btn" id="logoutBtn" type="button">Sign out</button>
+        </div>
+      </div>
+    </header>
+
+    <nav class="admin-tabs" aria-label="Dashboard sections" role="tablist">
+      <div class="admin-tabs-inner">
+        <button class="admin-tab active" type="button" role="tab" aria-selected="true" data-tab="orders">
+          Orders <span class="tab-badge hidden" id="ordersBadge">0</span>
+        </button>
+        <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="menu">Menu</button>
+        <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="tables">Tables &amp; QR</button>
+        <button class="admin-tab" type="button" role="tab" aria-selected="false" data-tab="settings">Settings</button>
+      </div>
+    </nav>
+
+    <main class="admin-main">
+      <!-- Orders -->
+      <section class="tab-panel" id="tab-orders" role="tabpanel">
+        <div class="page-head">
+          <div>
+            <span class="eyebrow"><span class="dot"></span> Service</span>
+            <h1>Live orders</h1>
+            <p>Every order, with its table number, in one place.</p>
+          </div>
+          <div class="page-actions">
+            <span class="last-updated" id="lastUpdated">Connecting…</span>
+            <button class="btn btn-ghost btn-sm" id="refreshOrdersBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+              Refresh
+            </button>
+            <button class="btn btn-dark btn-sm" id="exportBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+              Export CSV
+            </button>
+          </div>
+        </div>
+
+        <div class="stat-grid">
+          <article class="stat-card">
+            <div class="stat-icon" aria-hidden="true">🔔</div>
+            <div>
+              <span>Active orders</span>
+              <strong id="statActive">0</strong>
+              <small id="statActiveSub">No open tables</small>
+            </div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-icon" aria-hidden="true">💰</div>
+            <div>
+              <span>Today's sales</span>
+              <strong id="statSales">$0.00</strong>
+              <small id="statSalesSub">Across 0 orders</small>
+            </div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-icon" aria-hidden="true">🪑</div>
+            <div>
+              <span>Tables active</span>
+              <strong id="statTables">0</strong>
+              <small id="statTablesSub">With open orders</small>
+            </div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-icon" aria-hidden="true">✅</div>
+            <div>
+              <span>Served today</span>
+              <strong id="statCompleted">0</strong>
+              <small id="statCompletedSub">Completed orders</small>
+            </div>
+          </article>
+        </div>
+
+        <div class="filter-row">
+          <div class="filter-chips" id="orderFilters" role="group" aria-label="Filter orders"></div>
+          <p class="filter-note" id="filterNote">Auto-refreshes every 5 seconds</p>
+        </div>
+
+        <div class="orders-grid" id="ordersGrid"></div>
+        <div class="admin-empty hidden" id="ordersEmpty">
+          <div class="empty-icon" aria-hidden="true">🧾</div>
+          <h2>No orders here yet</h2>
+          <p>New orders will appear here automatically, with their table number and items.</p>
+        </div>
+      </section>
+
+      <!-- Menu -->
+      <section class="tab-panel" id="tab-menu" role="tabpanel" hidden>
+        <div class="page-head">
+          <div>
+            <span class="eyebrow"><span class="dot"></span> Menu</span>
+            <h1>Dishes &amp; categories</h1>
+            <p>Update prices, descriptions and availability. Changes appear instantly for guests.</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost btn-sm" id="addCategoryBtn" type="button">+ New category</button>
+            <button class="btn btn-primary btn-sm" id="addItemBtn" type="button">+ Add dish</button>
+          </div>
+        </div>
+
+        <div class="category-manage">
+          <span class="category-manage-label">Categories</span>
+          <div class="category-pills" id="categoryManage"></div>
+        </div>
+
+        <div class="menu-list-card">
+          <div class="menu-list-head">
+            <div>Dish</div>
+            <div>Category</div>
+            <div>Price</div>
+            <div>Availability</div>
+            <div></div>
+          </div>
+          <div id="adminMenuList"></div>
+        </div>
+        <div class="admin-empty hidden" id="menuEmpty">
+          <div class="empty-icon" aria-hidden="true">🍽️</div>
+          <h2>No dishes in this category</h2>
+          <p>Add a dish, or choose another category above.</p>
+        </div>
+      </section>
+
+      <!-- Tables -->
+      <section class="tab-panel" id="tab-tables" role="tabpanel" hidden>
+        <div class="page-head">
+          <div>
+            <span class="eyebrow"><span class="dot"></span> Table QR codes</span>
+            <h1>Tables &amp; QR</h1>
+            <p>Print one code per table. Each code carries its own table number.</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost btn-sm" id="refreshTablesBtn" type="button">Refresh codes</button>
+            <button class="btn btn-dark btn-sm" id="printQrBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
+              Print all codes
+            </button>
+          </div>
+        </div>
+
+        <div class="tables-info">
+          <div class="tables-info-copy">
+            <span class="eyebrow light"><span class="dot"></span> How guests order</span>
+            <h2>One scan. The right table.</h2>
+            <p>Place a code on every table. Scanning opens the guest menu with the table number already filled in, so orders arrive at the right place — no app required.</p>
+            <div class="qr-base-url">
+              <span>QR base address</span>
+              <code id="qrBaseUrl">Loading…</code>
+              <button class="icon-btn" id="copyBaseBtn" type="button" aria-label="Copy base address" title="Copy base address">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+            <p class="qr-warning hidden" id="qrWarning"></p>
+          </div>
+          <div class="tables-info-side">
+            <div>
+              <span>Tables</span>
+              <strong id="tableCountLabel">12</strong>
+            </div>
+            <button class="text-link" id="settingsShortcut" type="button">Change in settings</button>
+          </div>
+        </div>
+
+        <div class="qr-grid" id="qrGrid">
+          <div class="qr-loading"><span class="spinner" aria-hidden="true"></span></div>
+        </div>
+      </section>
+
+      <!-- Settings -->
+      <section class="tab-panel" id="tab-settings" role="tabpanel" hidden>
+        <div class="page-head">
+          <div>
+            <span class="eyebrow"><span class="dot"></span> Configuration</span>
+            <h1>Settings</h1>
+            <p>Restaurant details, table count and staff access.</p>
+          </div>
+        </div>
+
+        <div class="settings-grid">
+          <form class="settings-card" id="settingsForm">
+            <h2>Restaurant details</h2>
+            <p>These details appear on the guest menu and tracking page.</p>
+            <label class="field">
+              <span>Restaurant name</span>
+              <input id="settingName" type="text" maxlength="60" required>
+            </label>
+            <label class="field">
+              <span>Tagline</span>
+              <input id="settingTagline" type="text" maxlength="100" placeholder="Live grills & buffet">
+            </label>
+            <div class="form-grid">
+              <label class="field">
+                <span>Currency symbol</span>
+                <input id="settingCurrency" type="text" maxlength="6" required>
+              </label>
+              <label class="field">
+                <span>Number of tables</span>
+                <input id="settingTables" type="number" min="1" max="100" step="1" required>
+              </label>
+            </div>
+            <label class="field">
+              <span>Footer note</span>
+              <textarea id="settingFooter" rows="2" maxlength="200" placeholder="Please let your server know about any allergies."></textarea>
+            </label>
+            <div class="form-actions">
+              <button class="btn btn-primary" id="saveSettingsBtn" type="submit">Save settings</button>
+            </div>
+          </form>
+
+          <aside class="settings-side">
+            <div class="settings-card">
+              <h2>Staff access</h2>
+              <p>The dashboard is protected by a PIN. Share it only with your team.</p>
+              <div class="info-row">
+                <span>Default demo PIN</span>
+                <code>2468</code>
+              </div>
+              <p class="small-note">Change it by setting the <code>ADMIN_PIN</code> environment variable before starting the server.</p>
+            </div>
+            <div class="settings-card">
+              <h2>Data &amp; export</h2>
+              <p>Orders are saved locally in <code>data/db.json</code>. Download a CSV for your records.</p>
+              <button class="btn btn-ghost btn-sm" id="exportBtn2" type="button" style="margin-top:14px">Download orders CSV</button>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Item dialog -->
+  <dialog class="admin-dialog" id="itemDialog" aria-labelledby="itemDialogTitle">
+    <form class="dialog-card" id="itemForm">
+      <header class="dialog-head">
+        <div>
+          <span class="eyebrow"><span class="dot"></span> Menu item</span>
+          <h2 id="itemDialogTitle">Add a dish</h2>
+        </div>
+        <button class="icon-btn" id="itemDialogClose" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </header>
+      <div class="dialog-body">
+        <input id="itemId" type="hidden">
+        <label class="field">
+          <span>Dish name</span>
+          <input id="itemName" type="text" maxlength="80" required placeholder="e.g. Wild Mushroom Risotto">
+        </label>
+        <label class="field">
+          <span>Description</span>
+          <textarea id="itemDescription" rows="2" maxlength="240" placeholder="A short, tempting description"></textarea>
+        </label>
+        <div class="form-grid">
+          <label class="field">
+            <span>Category</span>
+            <select id="itemCategory" required></select>
+          </label>
+          <label class="field">
+            <span>Price</span>
+            <input id="itemPrice" type="number" min="0" max="10000" step="0.01" required placeholder="0.00">
+          </label>
+        </div>
+        <div class="form-grid">
+          <label class="field">
+            <span>Emoji</span>
+            <input id="itemEmoji" type="text" maxlength="12" placeholder="🍽️">
+          </label>
+          <label class="field">
+            <span>Tag (optional)</span>
+            <input id="itemTag" type="text" maxlength="30" placeholder="Vegetarian, Spicy…">
+          </label>
+        </div>
+        <div class="emoji-row" id="emojiRow" aria-label="Quick emoji picks"></div>
+        <label class="check-field">
+          <input id="itemAvailable" type="checkbox" checked>
+          <span>Available to order</span>
+        </label>
+        <p class="form-error hidden" id="itemError" role="alert"></p>
+      </div>
+      <footer class="dialog-actions">
+        <button class="btn btn-ghost btn-sm" id="itemCancelBtn" type="button">Cancel</button>
+        <button class="btn btn-primary btn-sm" id="itemSaveBtn" type="submit">Save dish</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- Category dialog -->
+  <dialog class="admin-dialog" id="categoryDialog" aria-labelledby="categoryDialogTitle">
+    <form class="dialog-card" id="categoryForm">
+      <header class="dialog-head">
+        <div>
+          <span class="eyebrow"><span class="dot"></span> Menu</span>
+          <h2 id="categoryDialogTitle">New category</h2>
+        </div>
+        <button class="icon-btn" id="categoryDialogClose" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </header>
+      <div class="dialog-body">
+        <label class="field">
+          <span>Category name</span>
+          <input id="categoryName" type="text" maxlength="40" required placeholder="e.g. Desserts">
+        </label>
+        <p class="form-error hidden" id="categoryError" role="alert"></p>
+      </div>
+      <footer class="dialog-actions">
+        <button class="btn btn-ghost btn-sm" id="categoryCancelBtn" type="button">Cancel</button>
+        <button class="btn btn-primary btn-sm" id="categorySaveBtn" type="submit">Save category</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- Confirm dialog -->
+  <dialog class="admin-dialog" id="confirmDialog" aria-labelledby="confirmTitle">
+    <div class="dialog-card confirm-card">
+      <div class="dialog-body">
+        <div class="confirm-icon" aria-hidden="true">⚠️</div>
+        <h2 id="confirmTitle">Are you sure?</h2>
+        <p id="confirmText"></p>
+      </div>
+      <footer class="dialog-actions">
+        <button class="btn btn-ghost btn-sm" id="confirmCancel" type="button">Keep it</button>
+        <button class="btn btn-danger btn-sm" id="confirmOk" type="button">Confirm</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <div class="toast" id="adminToast" role="status" aria-live="polite"></div>
+
+  <script src="/js/admin.js"></script>
+</body>
+</html>
