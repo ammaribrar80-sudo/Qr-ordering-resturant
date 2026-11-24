@@ -419,10 +419,8 @@ app.post('/api/orders', (req, res, next) => {
     const total = money(orderItems.reduce((sum, line) => sum + line.price * line.qty, 0));
     db.orderSeq = Number(db.orderSeq || 100) + 1;
     const now = new Date().toISOString();
-    const allowedMethods = ['cash', 'upi', 'upi_phonepe', 'upi_gpay', 'upi_paytm', 'upi_qr'];
-    const paymentMethod = allowedMethods.includes(body.paymentMethod) ? body.paymentMethod : 'cash';
-    // Anti-fraud: UPI claims start as pending_verification until staff or soundbox validates
-    const paymentStatus = paymentMethod.startsWith('upi') ? 'pending_verification' : 'pending';
+    const paymentMethod = body.paymentMethod === 'cash' ? 'cash' : 'counter';
+    const paymentStatus = 'pending';
 
     const order = {
       id: crypto.randomUUID(),
@@ -441,6 +439,53 @@ app.post('/api/orders', (req, res, next) => {
     db.orders.push(order);
     saveDb();
     res.status(201).json({ order: publicOrder(order) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/api/orders/:id/pay', (req, res, next) => {
+  try {
+    const order = db.orders.find((entry) => entry.id === req.params.id);
+    if (!order) throw new HttpError(404, 'Order not found.');
+    const method = req.body && req.body.method;
+    const now = new Date().toISOString();
+
+    if (method === 'upi') {
+      order.paymentMethod = 'upi';
+      order.paymentStatus = 'pending_verification';
+      order.updatedAt = now;
+      db.serviceRequests = db.serviceRequests || [];
+      db.serviceRequests.push({
+        id: crypto.randomUUID(),
+        table: order.table,
+        type: 'bill',
+        note: `UPI payment submitted for Order #${order.code} (₹${Number(order.total).toFixed(2)}) — please verify and mark paid`,
+        status: 'pending',
+        createdAt: now,
+        resolvedAt: null,
+      });
+      saveDb();
+    } else if (method === 'cash') {
+      order.paymentMethod = 'cash';
+      order.paymentStatus = 'pending';
+      order.updatedAt = now;
+      db.serviceRequests = db.serviceRequests || [];
+      db.serviceRequests.push({
+        id: crypto.randomUUID(),
+        table: order.table,
+        type: 'bill',
+        note: `Diner requested cash bill at Table ${order.table} for Order #${order.code} (₹${Number(order.total).toFixed(2)})`,
+        status: 'pending',
+        createdAt: now,
+        resolvedAt: null,
+      });
+      saveDb();
+    } else {
+      throw new HttpError(400, 'Invalid payment method.');
+    }
+
+    res.json({ order: publicOrder(order) });
   } catch (err) {
     next(err);
   }

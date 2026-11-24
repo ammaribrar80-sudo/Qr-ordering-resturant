@@ -33,21 +33,6 @@
   const orderNote = document.getElementById('orderNote');
   const submitOrderBtn = document.getElementById('submitOrderBtn');
 
-  // Payment Elements
-  const payMethodRadios = document.querySelectorAll('input[name="paymentMethod"]');
-  const payMethodUpiCard = document.getElementById('payMethodUpiCard');
-  const payMethodCashCard = document.getElementById('payMethodCashCard');
-  const upiLiveBox = document.getElementById('upiLiveBox');
-  const upiQrSvg = document.getElementById('upiQrSvg');
-  const upiPayLink = document.getElementById('upiPayLink');
-  const phonepeLink = document.getElementById('phonepeLink');
-  const gpayLink = document.getElementById('gpayLink');
-  const paytmLink = document.getElementById('paytmLink');
-  const displayUpiVpa = document.getElementById('displayUpiVpa');
-  const copyVpaBtn = document.getElementById('copyVpaBtn');
-  let selectedPaymentMethod = 'upi';
-  let cachedUpiVpa = 'barbequenation@okaxis';
-
   // Call Waiter Elements
   const openWaiterModalBtn = document.getElementById('openWaiterModalBtn');
   const closeWaiterModal = document.getElementById('closeWaiterModal');
@@ -333,70 +318,9 @@
 
     if (totalItems > 0) {
       cartFloatingBar.classList.add('visible');
-      if (selectedPaymentMethod === 'upi') {
-        refreshUpiQr(totalPrice);
-      }
     } else {
       cartFloatingBar.classList.remove('visible');
     }
-  }
-
-  // Dynamic UPI QR Refresh
-  let upiAbortCtrl = null;
-  async function refreshUpiQr(amount) {
-    if (!amount || amount <= 0) return;
-    try {
-      if (upiAbortCtrl) upiAbortCtrl.abort();
-      upiAbortCtrl = new AbortController();
-      const res = await fetch(`/api/upi-qr?amount=${amount}&table=${currentTable}`, {
-        signal: upiAbortCtrl.signal
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (upiQrSvg) upiQrSvg.innerHTML = data.svg;
-      if (upiPayLink) upiPayLink.href = data.upiUri;
-      if (phonepeLink) phonepeLink.href = data.upiUri;
-      if (gpayLink) gpayLink.href = data.upiUri;
-      if (paytmLink) paytmLink.href = data.upiUri;
-      if (displayUpiVpa) displayUpiVpa.textContent = data.vpa || cachedUpiVpa;
-    } catch (e) {
-      if (e.name !== 'AbortError') console.warn('UPI QR fetch error:', e);
-    }
-  }
-
-  // Payment Method Selection
-  payMethodRadios.forEach(radio => {
-    radio.addEventListener('change', () => {
-      selectedPaymentMethod = radio.value;
-      if (selectedPaymentMethod === 'upi') {
-        payMethodUpiCard.classList.add('active');
-        payMethodCashCard.classList.remove('active');
-        if (upiLiveBox) upiLiveBox.style.display = 'block';
-        submitOrderBtn.textContent = '⚡ Place Order & Pay via UPI';
-        let currentSubtotal = 0;
-        for (const [id, qty] of cart) {
-          const it = menuData && menuData.items.find(i => i.id === id);
-          if (it) currentSubtotal += it.price * qty;
-        }
-        if (currentSubtotal > 0) refreshUpiQr(currentSubtotal);
-      } else {
-        payMethodCashCard.classList.add('active');
-        payMethodUpiCard.classList.remove('active');
-        if (upiLiveBox) upiLiveBox.style.display = 'none';
-        submitOrderBtn.textContent = 'Send Order to Kitchen (Pay at Counter)';
-      }
-    });
-  });
-
-  if (copyVpaBtn) {
-    copyVpaBtn.addEventListener('click', () => {
-      const vpa = (displayUpiVpa && displayUpiVpa.textContent) || cachedUpiVpa;
-      navigator.clipboard.writeText(vpa).then(() => {
-        showToast('UPI ID copied to clipboard!', 'success');
-      }).catch(() => {
-        showToast('UPI ID: ' + vpa);
-      });
-    });
   }
 
   // Call Waiter Button & Modal Logic
@@ -493,7 +417,7 @@
       table: currentTable,
       items: Array.from(cart.entries()).map(([id, qty]) => ({ id, qty })),
       note: orderNote.value.trim(),
-      paymentMethod: selectedPaymentMethod === 'upi' ? 'upi' : 'cash'
+      paymentMethod: 'counter'
     };
 
     try {
@@ -508,16 +432,16 @@
         throw new Error(data.error || 'Failed to place order.');
       }
 
-      showToast('Order placed successfully! Redirecting to tracking...', 'success');
+      showToast('Order placed successfully! Sending to kitchen...', 'success');
       cart.clear();
       setTimeout(() => {
         window.location.href = `/order?id=${data.order.id}`;
-      }, 700);
+      }, 600);
 
     } catch (err) {
       showToast(err.message, 'error');
       submitOrderBtn.disabled = false;
-      submitOrderBtn.textContent = selectedPaymentMethod === 'upi' ? '⚡ Place Order & Pay via UPI' : 'Send Order to Kitchen';
+      submitOrderBtn.textContent = 'Send Order to Kitchen';
     }
   });
 

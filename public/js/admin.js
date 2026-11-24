@@ -11,43 +11,76 @@
   let pollTimer = null;
   let audioEnabled = true;
 
-  // Web Audio Chime Generator
+  // Web Audio Warm Bell Chime (iPhone-style resonant two-tone bell)
   let audioCtx = null;
-  function playKitchenChime() {
-    if (!audioEnabled) return;
+
+  function unlockAudio() {
     try {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
+      if (!AudioContext) return null;
       if (!audioCtx) audioCtx = new AudioContext();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    } catch (e) {
+      return null;
+    }
+  }
 
-      const now = audioCtx.currentTime;
-      // High chime tone
-      const osc1 = audioCtx.createOscillator();
-      const gain1 = audioCtx.createGain();
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(880, now); // A5
-      gain1.gain.setValueAtTime(0.3, now);
-      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-      osc1.connect(gain1);
-      gain1.connect(audioCtx.destination);
-      osc1.start(now);
-      osc1.stop(now + 0.6);
+  // Auto-unlock audio on any page interaction
+  ['click', 'touchstart', 'keydown'].forEach(evt => {
+    document.addEventListener(evt, () => unlockAudio(), { once: true, passive: true });
+  });
 
-      // Low harmonizing tone
-      const osc2 = audioCtx.createOscillator();
-      const gain2 = audioCtx.createGain();
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(1174.66, now + 0.12); // D6
-      gain2.gain.setValueAtTime(0.3, now + 0.12);
-      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
-      osc2.connect(gain2);
-      gain2.connect(audioCtx.destination);
-      osc2.start(now + 0.12);
-      osc2.stop(now + 0.9);
+  function playKitchenChime() {
+    if (!audioEnabled) return;
+    const ctx = unlockAudio();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+
+      // Master lowpass filter to keep sound warm, soft and pleasant (never screechy)
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(2200, now);
+      filter.connect(ctx.destination);
+
+      // Note 1: Warm C5 bell (523.25 Hz)
+      playBellNote(ctx, filter, 523.25, now, 0.28, 0.7);
+
+      // Note 2: Melodic E5 bell (659.25 Hz) - classic two-tone chime
+      playBellNote(ctx, filter, 659.25, now + 0.16, 0.32, 0.85);
     } catch (e) {
       console.warn('Audio chime error:', e);
     }
+  }
+
+  function playBellNote(ctx, dest, freq, startTime, volume, duration) {
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'triangle';
+    osc1.frequency.setValueAtTime(freq, startTime);
+    gain1.gain.setValueAtTime(0.0001, startTime);
+    gain1.gain.exponentialRampToValueAtTime(volume, startTime + 0.008);
+    gain1.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+    osc1.connect(gain1);
+    gain1.connect(dest);
+    osc1.start(startTime);
+    osc1.stop(startTime + duration + 0.05);
+
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(freq * 2.02, startTime);
+    gain2.gain.setValueAtTime(0.0001, startTime);
+    gain2.gain.exponentialRampToValueAtTime(volume * 0.35, startTime + 0.005);
+    gain2.gain.exponentialRampToValueAtTime(0.0001, startTime + (duration * 0.6));
+    osc2.connect(gain2);
+    gain2.connect(dest);
+    osc2.start(startTime);
+    osc2.stop(startTime + duration);
   }
 
   // DOM Elements
@@ -151,6 +184,15 @@
       chimeToggleBtn.classList.add('muted');
     }
   });
+
+  const testSoundBtn = document.getElementById('testSoundBtn');
+  if (testSoundBtn) {
+    testSoundBtn.addEventListener('click', () => {
+      unlockAudio();
+      playKitchenChime();
+      showToast('🔔 Testing bell alert chime...', 'info');
+    });
+  }
 
   // Tab switching
   navItems.forEach(item => {

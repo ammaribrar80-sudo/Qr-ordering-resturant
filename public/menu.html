@@ -89,59 +89,6 @@
           <label class="form-label" for="orderNote">Special Kitchen Instructions (Optional)</label>
           <textarea id="orderNote" class="form-textarea" placeholder="E.g., extra spicy, no onions, allergies..."></textarea>
         </div>
-
-        <!-- Payment Method Selector -->
-        <div class="checkout-payment-section">
-          <div class="payment-section-title">Select Payment Method</div>
-          <div class="payment-options-grid">
-            <label class="payment-method-card active" id="payMethodUpiCard">
-              <input type="radio" name="paymentMethod" value="upi" checked>
-              <div class="pay-card-content">
-                <div class="pay-card-header">
-                  <span class="pay-icon">⚡</span>
-                  <strong>Instant UPI</strong>
-                </div>
-                <div class="pay-apps-badges">
-                  <span class="app-pill app-phonepe">PhonePe</span>
-                  <span class="app-pill app-gpay">GPay</span>
-                  <span class="app-pill app-paytm">Paytm</span>
-                </div>
-              </div>
-            </label>
-            <label class="payment-method-card" id="payMethodCashCard">
-              <input type="radio" name="paymentMethod" value="cash">
-              <div class="pay-card-content">
-                <div class="pay-card-header">
-                  <span class="pay-icon">💵</span>
-                  <strong>Pay at Counter</strong>
-                </div>
-                <div class="pay-card-subtitle">Cash / Card after meal</div>
-              </div>
-            </label>
-          </div>
-
-          <!-- Dynamic UPI View -->
-          <div class="upi-live-box" id="upiLiveBox">
-            <div class="upi-qr-wrapper">
-              <div id="upiQrSvg" class="upi-qr-placeholder">Generating UPI QR...</div>
-              <div class="upi-scan-note">Scan with PhonePe, GPay, Paytm or BHIM</div>
-            </div>
-            <div class="upi-deep-links">
-              <a href="#" id="upiPayLink" class="btn-upi-app btn-upi-universal">⚡ Open Default UPI App</a>
-              <div class="upi-app-quick-row">
-                <a href="#" id="phonepeLink" class="upi-quick-btn phonepe-color">🟣 PhonePe</a>
-                <a href="#" id="gpayLink" class="upi-quick-btn gpay-color">🔵 Google Pay</a>
-                <a href="#" id="paytmLink" class="upi-quick-btn paytm-color">🟦 Paytm</a>
-              </div>
-            </div>
-            <div class="upi-vpa-row">
-              <span class="upi-vpa-label">UPI ID:</span>
-              <strong id="displayUpiVpa">barbequenation@okaxis</strong>
-              <button type="button" class="btn-copy-vpa" id="copyVpaBtn">Copy</button>
-            </div>
-          </div>
-        </div>
-
       </div>
 
       <div class="cart-drawer-footer">
@@ -153,7 +100,10 @@
           <span>Total</span>
           <span id="cartTotal">₹0.00</span>
         </div>
-        <button class="btn btn-primary btn-lg" id="submitOrderBtn" style="width: 100%; margin-top: 14px;">
+        <div style="font-size: 12px; color: var(--muted); text-align: center; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <span>🧾</span> Pay after dining — Counter billing or instant UPI available on your bill.
+        </div>
+        <button class="btn btn-primary btn-lg" id="submitOrderBtn" style="width: 100%; margin-top: 10px;">
           Send Order to Kitchen
         </button>
       </div>
