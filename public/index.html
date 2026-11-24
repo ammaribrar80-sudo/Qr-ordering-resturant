@@ -18,18 +18,18 @@
       z-index: 20;
     }
     .landing-brand {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 16px;
+      text-decoration: none;
     }
     .landing-logo {
-      height: 48px;
+      height: 60px;
       width: auto;
-      filter: drop-shadow(0 4px 12px rgba(226, 123, 30, 0.45));
+      filter: drop-shadow(0 4px 14px rgba(226, 123, 30, 0.5));
       transition: transform 0.25s ease;
     }
     .landing-logo:hover {
-      transform: scale(1.05);
+      transform: scale(1.06);
     }
     .landing-brand-text {
       display: flex;
@@ -399,13 +399,9 @@
 
   <!-- Top Navigation with Official BBQ Nation Logo -->
   <nav class="landing-nav">
-    <div class="landing-brand">
+    <a href="/" class="landing-brand" title="Barbeque Nation">
       <img src="/images/bbq-logo.svg" alt="Barbeque Nation" class="landing-logo">
-      <div class="landing-brand-text">
-        <span class="landing-brand-title">Barbeque Nation</span>
-        <span class="landing-brand-sub">Sentrum Mall • Asansol</span>
-      </div>
-    </div>
+    </a>
     <div style="display: flex; gap: 10px;">
       <a href="/menu?table=1" class="btn btn-outline btn-sm">Guest Menu</a>
       <a href="/admin" class="btn btn-primary btn-sm">Staff Portal</a>
