@@ -460,6 +460,13 @@
     tableModal.classList.add('active');
   });
 
+  changeTableBtn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      changeTableBtn.click();
+    }
+  });
+
   closeTableModal.addEventListener('click', () => {
     tableModal.classList.remove('active');
   });

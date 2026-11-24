@@ -6,61 +6,111 @@
   <title>Barbeque Nation — Sentrum Mall, Asansol | QR Table Ordering</title>
   <link rel="stylesheet" href="/css/base.css">
   <style>
-    /* Hero Poster Section (Pinterest Luxury Emerald & Saffron Style) */
-    .landing-nav {
-      position: absolute;
+    /* ==========================================================================
+       Cloud Amber Theme — Barbeque Nation QR Ordering Landing Page
+       ========================================================================== */
+    body {
+      background: #ffffff !important;
+      color: #1f2937;
+      font-family: 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    }
+
+    /* Fixed Top Navigation */
+    .landing-nav-wrapper {
+      position: fixed;
       top: 0;
       left: 0;
       right: 0;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1.5px solid #f1f5f9;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    }
+    .landing-nav {
       max-width: 1200px;
       margin: 0 auto;
-      padding: 24px 30px;
+      padding: 12px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      z-index: 50;
+      gap: 16px;
     }
     .landing-brand {
       display: inline-flex;
       align-items: center;
       text-decoration: none;
     }
-    .landing-logo {
-      height: 60px;
-      width: auto;
-      filter: drop-shadow(0 4px 14px rgba(226, 123, 30, 0.5));
-      transition: transform 0.25s ease;
+
+    /* Responsive Logo Container */
+    .bbq-brand-box {
+      display: flex;
+      align-items: center;
+      position: relative;
     }
-    .landing-logo:hover {
-      transform: scale(1.06);
+    .bbq-logo-full {
+      height: 64px;
+      width: auto;
+      display: block;
+      transition: transform 0.22s ease;
+      filter: drop-shadow(0 3px 10px rgba(255, 99, 1, 0.3));
+    }
+    .bbq-logo-crown {
+      display: none;
+      height: 52px;
+      width: auto;
+      transition: transform 0.22s ease;
+      filter: drop-shadow(0 3px 10px rgba(255, 99, 1, 0.35));
+    }
+    .bbq-brand-box:hover .bbq-logo-full,
+    .bbq-brand-box:hover .bbq-logo-crown {
+      transform: scale(1.04);
     }
 
+    /* When page is compressed towards the Guest Menu / Staff buttons */
+    @media (max-width: 720px) {
+      .bbq-logo-full {
+        display: none !important;
+      }
+      .bbq-logo-crown {
+        display: block !important;
+      }
+    }
+
+    .landing-nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Hero Poster Section (Cloud Amber) */
     .hero-poster {
       position: relative;
-      padding: 115px 24px 70px;
+      padding: 135px 24px 60px;
       text-align: center;
       overflow: hidden;
       max-width: 1200px;
       margin: 0 auto;
+      background: radial-gradient(circle at 50% 12%, rgba(255, 99, 1, 0.08) 0%, rgba(255, 255, 255, 0) 65%), #ffffff;
     }
 
     /* Ambient spice particles */
     .spice-element {
       position: absolute;
       pointer-events: none;
-      opacity: 0.6;
-      filter: drop-shadow(0 6px 14px rgba(0,0,0,0.4));
+      opacity: 0.45;
       user-select: none;
       animation: floatSlow 6s ease-in-out infinite alternate;
     }
-    .spice-1 { top: 12%; left: 8%; font-size: 28px; animation-duration: 5s; }
-    .spice-2 { top: 22%; right: 10%; font-size: 32px; animation-duration: 7s; }
-    .spice-3 { bottom: 18%; left: 14%; font-size: 26px; animation-duration: 6s; }
-    .spice-4 { bottom: 25%; right: 12%; font-size: 28px; animation-duration: 8s; }
+    .spice-1 { top: 14%; left: 8%; font-size: 28px; animation-duration: 5s; }
+    .spice-2 { top: 20%; right: 10%; font-size: 32px; animation-duration: 7s; }
+    .spice-3 { bottom: 20%; left: 12%; font-size: 26px; animation-duration: 6s; }
+    .spice-4 { bottom: 26%; right: 12%; font-size: 28px; animation-duration: 8s; }
 
     @keyframes floatSlow {
       0% { transform: translateY(0) rotate(0deg); }
-      100% { transform: translateY(-16px) rotate(12deg); }
+      100% { transform: translateY(-14px) rotate(10deg); }
     }
 
     .hero-badge-pill {
@@ -69,36 +119,36 @@
       gap: 8px;
       padding: 8px 20px;
       border-radius: var(--radius-pill);
-      background: rgba(226, 123, 30, 0.16);
-      border: 1px solid rgba(226, 123, 30, 0.45);
-      color: #ffbe53;
+      background: #fff8f5;
+      border: 1.5px solid rgba(255, 99, 1, 0.35);
+      color: #FF6301;
       font-size: 13px;
       font-weight: 700;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
-      margin-bottom: 24px;
-      box-shadow: 0 4px 18px rgba(226, 123, 30, 0.2);
+      margin-bottom: 22px;
+      box-shadow: 0 2px 10px rgba(255, 99, 1, 0.1);
     }
 
     .hero-poster-title {
-      font-family: var(--font-serif);
-      font-size: clamp(36px, 6vw, 68px);
-      font-weight: 800;
-      color: #ffffff;
-      line-height: 1.08;
+      font-family: 'Roboto', sans-serif;
+      font-size: clamp(34px, 5.5vw, 64px);
+      font-weight: 900;
+      color: #111827;
+      line-height: 1.1;
       letter-spacing: -0.02em;
-      margin-bottom: 16px;
-      text-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+      margin-bottom: 18px;
     }
     .hero-poster-title span.saffron {
-      background: linear-gradient(135deg, #ffbe53 0%, #e27b1e 100%);
+      background: linear-gradient(135deg, #FF6301 0%, #e05500 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
     .hero-poster-sub {
-      font-size: clamp(16px, 2.5vw, 19px);
-      color: #c9ded3;
+      font-family: 'Roboto', sans-serif;
+      font-size: clamp(16px, 2.2vw, 19px);
+      color: #4b5563;
       max-width: 680px;
       margin: 0 auto 34px;
       line-height: 1.6;
@@ -107,7 +157,7 @@
     .hero-action-row {
       display: flex;
       justify-content: center;
-      gap: 16px;
+      gap: 14px;
       flex-wrap: wrap;
       margin-bottom: 50px;
     }
@@ -118,7 +168,7 @@
       grid-template-columns: 1.2fr 1fr 1fr;
       gap: 20px;
       max-width: 1060px;
-      margin: 0 auto 30px;
+      margin: 0 auto 20px;
       align-items: center;
     }
     @media (max-width: 820px) {
@@ -132,15 +182,15 @@
       position: relative;
       border-radius: var(--radius-lg);
       overflow: hidden;
-      border: 1.5px solid rgba(226, 123, 30, 0.3);
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+      border: 1.5px solid rgba(255, 99, 1, 0.25);
+      box-shadow: 0 10px 30px rgba(255, 99, 1, 0.1);
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      background: #091e13;
+      background: #ffffff;
     }
     .collage-card:hover {
-      transform: translateY(-6px) scale(1.02);
-      border-color: #ffbe53;
-      box-shadow: 0 22px 50px rgba(226, 123, 30, 0.35);
+      transform: translateY(-5px) scale(1.02);
+      border-color: #FF6301;
+      box-shadow: 0 16px 36px rgba(255, 99, 1, 0.2);
     }
     .collage-card img {
       width: 100%;
@@ -153,31 +203,31 @@
       height: 310px;
     }
     .collage-card:hover img {
-      transform: scale(1.06);
+      transform: scale(1.05);
     }
     .collage-caption {
       position: absolute;
       inset: auto 0 0 0;
       padding: 24px 18px 16px;
-      background: linear-gradient(180deg, transparent 0%, rgba(4, 15, 9, 0.95) 100%);
+      background: linear-gradient(180deg, transparent 0%, rgba(17, 24, 39, 0.9) 100%);
       text-align: left;
     }
     .collage-tag {
-      font-size: 10.5px;
+      font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: #ffbe53;
+      color: #ffd4b8;
       margin-bottom: 3px;
     }
     .collage-title {
-      font-family: var(--font-serif);
+      font-family: 'Roboto', sans-serif;
       font-size: 18px;
       font-weight: 700;
-      color: #fff;
+      color: #ffffff;
     }
 
-    /* Offers & Happiness Card Showcase */
+    /* Offers Section (Cloud Amber) */
     .offers-section {
       max-width: 1100px;
       margin: 40px auto 60px;
@@ -185,21 +235,27 @@
     }
     .section-header {
       text-align: center;
-      margin-bottom: 36px;
+      margin-bottom: 34px;
     }
     .section-eyebrow {
       font-size: 12px;
-      color: #ffbe53;
+      color: #FF6301;
       letter-spacing: 0.15em;
       text-transform: uppercase;
-      font-weight: 700;
+      font-weight: 800;
       margin-bottom: 6px;
     }
     .section-title {
-      font-family: var(--font-serif);
-      font-size: clamp(26px, 4vw, 38px);
-      color: #fff;
-      font-weight: 700;
+      font-family: 'Roboto', sans-serif;
+      font-size: clamp(26px, 3.8vw, 36px);
+      color: #111827;
+      font-weight: 800;
+    }
+    .section-desc {
+      font-size: 15px;
+      color: #4b5563;
+      max-width: 640px;
+      margin: 8px auto 0;
     }
 
     .offers-grid {
@@ -208,11 +264,11 @@
       gap: 22px;
     }
     .offer-card {
-      background: rgba(14, 40, 27, 0.75);
-      border: 1.5px solid rgba(226, 123, 30, 0.25);
+      background: #ffffff;
+      border: 1.5px solid rgba(255, 99, 1, 0.25);
       border-radius: var(--radius-lg);
       padding: 28px 24px;
-      box-shadow: var(--shadow-md);
+      box-shadow: 0 4px 18px rgba(255, 99, 1, 0.08);
       transition: all 0.25s ease;
       position: relative;
       overflow: hidden;
@@ -221,113 +277,250 @@
       justify-content: space-between;
     }
     .offer-card:hover {
-      border-color: #e27b1e;
+      border-color: #FF6301;
       transform: translateY(-4px);
-      box-shadow: var(--shadow-lg), 0 0 24px rgba(226, 123, 30, 0.2);
+      box-shadow: 0 10px 30px rgba(255, 99, 1, 0.18);
     }
     .offer-badge {
       display: inline-block;
       padding: 4px 12px;
       border-radius: var(--radius-pill);
-      background: rgba(226, 123, 30, 0.2);
-      border: 1px solid rgba(226, 123, 30, 0.4);
-      color: #ffbe53;
-      font-size: 11px;
+      background: #fff8f5;
+      border: 1px solid rgba(255, 99, 1, 0.35);
+      color: #FF6301;
+      font-size: 11.5px;
       font-weight: 700;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
       margin-bottom: 14px;
       align-self: flex-start;
     }
     .offer-title {
-      font-family: var(--font-serif);
+      font-family: 'Roboto', sans-serif;
       font-size: 22px;
       font-weight: 700;
-      color: #fff;
+      color: #111827;
       margin-bottom: 10px;
     }
     .offer-desc {
       font-size: 14px;
-      color: #c4d7cc;
+      color: #4b5563;
       line-height: 1.55;
       margin-bottom: 18px;
     }
     .offer-highlight {
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 700;
-      color: #ffbe53;
+      color: #FF6301;
       display: flex;
       align-items: center;
       gap: 6px;
     }
 
-    /* Table Picker Card */
+    /* ==========================================================================
+       Authentic Dine-In Simulator Section
+       ========================================================================== */
     .table-picker-container {
-      max-width: 1000px;
+      max-width: 1080px;
       margin: 0 auto 60px;
       padding: 0 20px;
     }
     .table-picker-box {
-      background: rgba(14, 40, 27, 0.85);
-      border: 1.5px solid rgba(226, 123, 30, 0.3);
-      border-radius: var(--radius-lg);
-      padding: 40px 30px;
-      box-shadow: var(--shadow-lg);
+      background: #ffffff;
+      border: 1.5px solid rgba(255, 99, 1, 0.25);
+      border-radius: 24px;
+      padding: 40px 32px;
+      box-shadow: 0 12px 40px rgba(255, 99, 1, 0.1);
       text-align: center;
-      backdrop-filter: blur(12px);
+      position: relative;
     }
+
+    .sim-status-banner {
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+      padding: 8px 20px;
+      background: #fff8f5;
+      border: 1px solid rgba(255, 99, 1, 0.3);
+      border-radius: var(--radius-pill);
+      margin-top: 14px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .sim-status-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #92400e;
+    }
+    .sim-pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+      animation: pulseGreen 2s infinite;
+    }
+    @keyframes pulseGreen {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    /* Zone Filter Tabs */
+    .sim-filter-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .sim-tab {
+      padding: 7px 16px;
+      border-radius: var(--radius-pill);
+      font-size: 13px;
+      font-weight: 600;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .sim-tab:hover {
+      background: #fff8f5;
+      border-color: rgba(255, 99, 1, 0.4);
+      color: #FF6301;
+    }
+    .sim-tab.active {
+      background: #FF6301;
+      border-color: #FF6301;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(255, 99, 1, 0.25);
+    }
+
+    /* Authentic Table Cards Grid */
     .table-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-      gap: 14px;
-      max-width: 860px;
-      margin: 28px auto 0;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 16px;
+      max-width: 980px;
+      margin: 0 auto;
     }
-    .table-btn {
-      background: rgba(9, 28, 19, 0.9);
-      border: 1.5px solid rgba(226, 123, 30, 0.25);
-      border-radius: var(--radius-md);
-      padding: 16px 8px;
+
+    .table-stand-card {
+      background: #ffffff;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 16px 12px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      text-align: center;
+      position: relative;
       cursor: pointer;
-      color: #fff;
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      overflow: hidden;
     }
-    .table-btn:hover {
-      background: linear-gradient(135deg, #e27b1e 0%, #c96510 100%);
-      color: #fff;
-      border-color: #ffbe53;
-      transform: translateY(-3px);
-      box-shadow: 0 8px 24px rgba(226, 123, 30, 0.45);
+    .table-stand-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #FF6301, #ff8c3b);
+      opacity: 0.9;
+      transition: height 0.2s ease;
     }
-    .table-btn span.label {
-      font-size: 10px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: #ffbe53;
-      font-weight: 700;
+    .table-stand-card:hover {
+      border-color: #FF6301;
+      transform: translateY(-4px);
+      box-shadow: 0 10px 24px rgba(255, 99, 1, 0.2);
     }
-    .table-btn:hover span.label {
-      color: #fff;
-    }
-    .table-btn span.num {
-      font-family: var(--font-serif);
-      font-size: 26px;
-      font-weight: 700;
-      line-height: 1.1;
-      margin: 2px 0;
+    .table-stand-card:hover::before {
+      height: 6px;
     }
 
-    /* Payment Methods Showcase */
+    .table-stand-tag {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #FF6301;
+      margin-top: 4px;
+    }
+    .table-stand-num {
+      font-family: 'Roboto', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      color: #111827;
+      line-height: 1.1;
+      margin: 4px 0 6px;
+    }
+    .table-grill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #059669;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+      margin-bottom: 8px;
+    }
+    .table-card-actions {
+      display: flex;
+      gap: 6px;
+      width: 100%;
+      margin-top: 4px;
+    }
+    .table-btn-menu {
+      flex: 1;
+      padding: 6px 0;
+      background: #fff8f5;
+      border: 1px solid rgba(255, 99, 1, 0.35);
+      border-radius: var(--radius-pill);
+      font-size: 11px;
+      font-weight: 700;
+      color: #FF6301;
+      transition: all 0.15s ease;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .table-stand-card:hover .table-btn-menu {
+      background: #FF6301;
+      color: #fff;
+      border-color: #FF6301;
+    }
+    .table-btn-qr {
+      padding: 6px 10px;
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      border-radius: var(--radius-pill);
+      font-size: 11px;
+      color: #374151;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    .table-btn-qr:hover {
+      background: #111827;
+      color: #fff;
+    }
+
+    /* Payments Strip */
     .payments-strip {
-      max-width: 900px;
-      margin: 0 auto 70px;
-      padding: 24px 28px;
-      background: rgba(14, 40, 27, 0.7);
-      border: 1px solid rgba(226, 123, 30, 0.25);
-      border-radius: var(--radius-lg);
+      max-width: 960px;
+      margin: 0 auto 60px;
+      padding: 24px 30px;
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -340,17 +533,17 @@
     .payments-title {
       font-size: 16px;
       font-weight: 700;
-      color: #fff;
+      color: #111827;
       margin-bottom: 4px;
     }
     .payments-sub {
-      font-size: 13px;
-      color: #c4d7cc;
+      font-size: 13.5px;
+      color: #64748b;
     }
     .payment-logos-row {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
       flex-wrap: wrap;
     }
     .payment-badge {
@@ -358,42 +551,48 @@
       align-items: center;
       gap: 8px;
       padding: 8px 16px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
       border-radius: var(--radius-pill);
       font-size: 13px;
       font-weight: 600;
-      color: #fff;
-    }
-    .payment-badge img {
-      display: block;
+      color: #1e293b;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
     }
 
     footer.landing-footer {
-      border-top: 1px solid rgba(226, 123, 30, 0.2);
+      border-top: 1px solid #f1f5f9;
+      background: #ffffff;
       padding: 36px 20px 48px;
       text-align: center;
       font-size: 13px;
-      color: var(--muted);
+      color: #64748b;
     }
   </style>
 </head>
 <body>
 
-  <!-- Top Navigation with Official BBQ Nation Logo -->
-  <nav class="landing-nav">
-    <a href="/" class="landing-brand" title="Barbeque Nation">
-      <img src="/images/bbq-logo.svg" alt="Barbeque Nation" class="landing-logo">
-    </a>
-    <div style="display: flex; gap: 10px;">
-      <a href="/menu?table=1" class="btn btn-outline btn-sm">Guest Menu</a>
-      <a href="/admin" class="btn btn-primary btn-sm">Staff Portal</a>
-    </div>
-  </nav>
+  <!-- Fixed Top Navigation with Responsive Barbeque Nation Div -->
+  <header class="landing-nav-wrapper">
+    <nav class="landing-nav">
+      <a href="/" class="landing-brand" title="Barbeque Nation">
+        <div class="bbq-brand-box">
+          <!-- Full Logo on Desktop -->
+          <img src="/images/bbq-logo.svg" alt="Barbeque Nation" class="bbq-logo-full">
+          <!-- Flame Crown Only on Tablet/Mobile Collapse -->
+          <img src="/images/bbq-crown.svg" alt="Barbeque Nation" class="bbq-logo-crown">
+        </div>
+      </a>
+      <div class="landing-nav-actions">
+        <a href="/menu?table=1" class="btn btn-outline btn-sm">Guest Menu</a>
+        <a href="/admin" class="btn btn-primary btn-sm">Staff Portal</a>
+      </div>
+    </nav>
+  </header>
 
-  <!-- Hero Poster Section -->
+  <!-- Hero Poster Section (Cloud Amber) -->
   <header class="hero-poster">
-    <!-- Floating spice particles -->
+    <!-- Ambient spice particles -->
     <span class="spice-element spice-1">🌶️</span>
     <span class="spice-element spice-2">⭐</span>
     <span class="spice-element spice-3">🌿</span>
@@ -443,11 +642,12 @@
     </div>
   </header>
 
-  <!-- Offers & Happiness Card Section (from BBQ Nation website) -->
+  <!-- Offers & Privileges Section -->
   <section class="offers-section">
     <div class="section-header">
       <div class="section-eyebrow">Exclusive Privileges</div>
       <h2 class="section-title">Happiness Cards &amp; Buffet Offers</h2>
+      <p class="section-desc">Handcrafted dining packages and instant digital gift vouchers for celebrations at Sentrum Mall, Asansol.</p>
     </div>
 
     <div class="offers-grid">
@@ -459,7 +659,7 @@
         </p>
         <div class="offer-highlight">
           <span>₹500 — ₹5,000</span>
-          <span style="font-size: 13px; color: #ffbe53; font-weight: 500;">(Instant Digital Delivery)</span>
+          <span style="font-size: 13px; color: #ea580c; font-weight: 500;">(Instant Digital Delivery)</span>
         </div>
       </div>
 
@@ -487,20 +687,43 @@
     </div>
   </section>
 
-  <!-- Table QR Picker Section -->
+  <!-- Authentic Dine-In Simulator Section -->
   <section class="table-picker-container">
     <div class="table-picker-box">
-      <div class="section-eyebrow">Dine-In Simulator</div>
-      <h2 class="section-title" style="font-size: 28px; margin-bottom: 8px;">Select Your Table</h2>
-      <p style="color: #c4d7cc; font-size: 14.5px;">Click your table below to open its live interactive menu, or scan the QR code with your smartphone:</p>
-      
+      <div class="section-eyebrow">Dine-In Table Stand &amp; Grill Simulator</div>
+      <h2 class="section-title" style="font-size: 30px; margin-bottom: 6px;">Interactive Table Stations</h2>
+      <p class="section-desc" style="margin-top: 0;">
+        Experience seamless on-table ordering just like our restaurant stands. Tap any table to open its live menu or inspect its authentic smartphone QR code:
+      </p>
+
+      <div class="sim-status-banner">
+        <div class="sim-status-item">
+          <span class="sim-pulse-dot"></span> 17 Charcoal Grills Active
+        </div>
+        <div class="sim-status-item">
+          ⚡ Kitchen KDS Sync Online
+        </div>
+        <div class="sim-status-item">
+          🍢 Skewer Refill Calling Ready
+        </div>
+      </div>
+
+      <!-- Zone Filter Tabs -->
+      <div class="sim-filter-tabs">
+        <button class="sim-tab active" data-filter="all">🔥 All Tables (17)</button>
+        <button class="sim-tab" data-filter="grill">🍢 Live Grill Hall (Tables 1-8)</button>
+        <button class="sim-tab" data-filter="family">👨‍👩‍👧‍👦 Family Booths (Tables 9-14)</button>
+        <button class="sim-tab" data-filter="royal">👑 Royal Lounge (Tables 15-17)</button>
+      </div>
+
+      <!-- Tables Grid Container -->
       <div class="table-grid" id="tablesContainer">
         <!-- Tables generated via JS -->
       </div>
     </div>
   </section>
 
-  <!-- Seamless UPI & Payments Strip with Official SVG Logos -->
+  <!-- Seamless UPI & Payments Strip -->
   <section style="padding: 0 20px;">
     <div class="payments-strip">
       <div class="payments-info">
@@ -528,17 +751,17 @@
 
   <!-- QR Code Modal -->
   <div class="modal-overlay" id="qrModal">
-    <div class="modal-card" style="text-align: center; max-width: 420px;">
+    <div class="modal-card" style="text-align: center; max-width: 420px; border: 1.5px solid rgba(255, 99, 1, 0.35);">
       <div class="modal-header">
-        <h3 class="modal-title" id="qrModalTitle">Table 1 QR Code</h3>
+        <h3 class="modal-title" id="qrModalTitle" style="color: #111827;">Table 1 QR Code</h3>
         <button class="modal-close" id="closeQrModal" aria-label="Close">&times;</button>
       </div>
-      <div id="qrModalSvg" style="margin: 14px auto; max-width: 230px; min-height: 230px; background: #fff; padding: 12px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(0,0,0,0.3);">
+      <div id="qrModalSvg" style="margin: 14px auto; max-width: 230px; min-height: 230px; background: #fff; padding: 12px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.08); border: 1px solid #e5e7eb;">
         <span style="color: #666;">Generating QR...</span>
       </div>
-      <div style="font-size: 12px; color: #ffbe53; word-break: break-all; margin: 12px 0;" id="qrModalUrl"></div>
-      <div style="background: rgba(226, 123, 30, 0.12); border: 1px solid rgba(226, 123, 30, 0.3); border-radius: var(--radius-md); padding: 12px; font-size: 12.5px; text-align: left; margin: 16px 0; color: #d1e2d8; line-height: 1.5;">
-        📶 <strong>Phone scan:</strong> Point your camera at this QR code to load the table menu on your mobile.
+      <div style="font-size: 12px; color: #FF6301; word-break: break-all; margin: 12px 0; font-weight: 700;" id="qrModalUrl"></div>
+      <div style="background: #fff8f5; border: 1px solid rgba(255, 99, 1, 0.35); border-radius: var(--radius-md); padding: 12px; font-size: 12.5px; text-align: left; margin: 16px 0; color: #9a3412; line-height: 1.5;">
+        📶 <strong>Phone scan:</strong> Point your phone camera at this QR code to load the table menu on your mobile.
       </div>
       <div style="display: flex; gap: 10px; justify-content: center;">
         <button class="btn btn-outline btn-sm" id="copyModalUrlBtn">📋 Copy Link</button>
@@ -548,8 +771,8 @@
   </div>
 
   <footer class="landing-footer">
-    <p style="margin-bottom: 6px;">Barbeque Nation — Sentrum Mall, Kanyapur, Asansol (West Bengal)</p>
-    <p style="font-size: 12px; opacity: 0.7;">Interactive QR Table Ordering &amp; Live Kitchen Management Demo</p>
+    <p style="margin-bottom: 6px; font-weight: 600; color: #111827;">Barbeque Nation — Sentrum Mall, Kanyapur, Asansol (West Bengal)</p>
+    <p style="font-size: 12px; color: #64748b;">Interactive QR Table Ordering &amp; Live Kitchen Management Demo</p>
   </footer>
 
   <script>
@@ -577,7 +800,7 @@
           openModalUrlBtn.href = data.url;
         })
         .catch(err => {
-          qrModalSvg.innerHTML = `<span style="color: #ff7675;">Failed to load QR code.</span>`;
+          qrModalSvg.innerHTML = `<span style="color: #ef4444;">Failed to load QR code.</span>`;
         });
     }
 
@@ -599,29 +822,53 @@
       });
     });
 
+    // Render Authentic Table Cards
+    function renderTables(count = 17, filter = 'all') {
+      const container = document.getElementById('tablesContainer');
+      container.innerHTML = '';
+      
+      for (let i = 1; i <= count; i++) {
+        // Filter logic
+        if (filter === 'grill' && (i < 1 || i > 8)) continue;
+        if (filter === 'family' && (i < 9 || i > 14)) continue;
+        if (filter === 'royal' && (i < 15 || i > 17)) continue;
+
+        const padNum = i < 10 ? `0${i}` : `${i}`;
+        const card = document.createElement('div');
+        card.className = 'table-stand-card';
+        card.innerHTML = `
+          <div class="table-stand-tag">Table Stand</div>
+          <div class="table-stand-num">${padNum}</div>
+          <div class="table-grill-badge">🟢 Grill Ready</div>
+          <div class="table-card-actions">
+            <a href="/menu?table=${i}" class="table-btn-menu">Open</a>
+            <button class="table-btn-qr" title="Scan QR" onclick="event.stopPropagation(); showQrForTable(${i});">📱</button>
+          </div>
+        `;
+        card.addEventListener('click', () => {
+          window.location.href = `/menu?table=${i}`;
+        });
+        container.appendChild(card);
+      }
+    }
+
+    // Zone filter buttons
+    document.querySelectorAll('.sim-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.sim-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        renderTables(17, tab.getAttribute('data-filter'));
+      });
+    });
+
     fetch('/api/menu')
       .then(res => res.json())
       .then(data => {
         const count = data.tableCount || 17;
-        const container = document.getElementById('tablesContainer');
-        container.innerHTML = '';
-        for (let i = 1; i <= count; i++) {
-          const div = document.createElement('div');
-          div.className = 'table-btn';
-          div.innerHTML = `<span class="label">Table</span><span class="num">${i}</span><span style="font-size:10px; color:#ffbe53; margin-top:2px;">📱 QR</span>`;
-          div.addEventListener('click', () => showQrForTable(i));
-          container.appendChild(div);
-        }
+        renderTables(count, 'all');
       })
       .catch(() => {
-        const container = document.getElementById('tablesContainer');
-        for (let i = 1; i <= 17; i++) {
-          const div = document.createElement('div');
-          div.className = 'table-btn';
-          div.innerHTML = `<span class="label">Table</span><span class="num">${i}</span><span style="font-size:10px; color:#ffbe53; margin-top:2px;">📱 QR</span>`;
-          div.addEventListener('click', () => showQrForTable(i));
-          container.appendChild(div);
-        }
+        renderTables(17, 'all');
       });
   </script>
 </body>
