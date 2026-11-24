@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40" width="120" height="40">
+  <rect width="120" height="40" rx="8" fill="#ffffff"/>
+  <!-- Pay in Navy -->
+  <text x="10" y="27" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="22" fill="#002970">Pay</text>
+  <!-- tm in Cyan -->
+  <text x="56" y="27" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="22" fill="#00baf2">tm</text>
+  <rect x="90" y="8" width="22" height="24" rx="4" fill="#00baf2"/>
+  <path d="M96 15h10M101 15v10" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

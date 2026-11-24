@@ -174,32 +174,32 @@
     if (status !== 'cancelled') {
       if (order.paymentStatus === 'paid') {
         paymentCardHtml = `
-          <div style="background: #eafaf1; border: 1.5px solid #a9dfbf; border-radius: var(--radius-md); padding: 18px; margin-top: 24px; text-align: center;">
+          <div style="background: rgba(46, 204, 113, 0.15); border: 1.5px solid rgba(46, 204, 113, 0.45); border-radius: var(--radius-md); padding: 20px; margin-top: 24px; text-align: center;">
             <div style="font-size: 32px; margin-bottom: 4px;">✅</div>
-            <h4 style="font-size: 17px; color: #1e8449; margin: 0 0 4px; font-weight: 700;">Bill Settled &amp; Paid</h4>
-            <p style="font-size: 13px; color: #27ae60; margin: 0;">Payment confirmed by restaurant staff. Thank you for dining with us!</p>
+            <h4 style="font-size: 18px; color: #2ecc71; margin: 0 0 4px; font-weight: 700;">Bill Settled &amp; Paid</h4>
+            <p style="font-size: 13.5px; color: #c9ded3; margin: 0;">Payment confirmed by restaurant staff. Thank you for dining with us!</p>
           </div>
         `;
       } else if (order.paymentStatus === 'pending_verification') {
         paymentCardHtml = `
-          <div style="background: #fef9e7; border: 1.5px solid #fae8a4; border-radius: var(--radius-md); padding: 18px; margin-top: 24px; text-align: center;">
+          <div style="background: rgba(243, 156, 18, 0.18); border: 1.5px solid rgba(243, 156, 18, 0.45); border-radius: var(--radius-md); padding: 20px; margin-top: 24px; text-align: center;">
             <div style="font-size: 32px; margin-bottom: 4px;">⏳</div>
-            <h4 style="font-size: 17px; color: #b78103; margin: 0 0 4px; font-weight: 700;">UPI Payment Pending Verification</h4>
-            <p style="font-size: 13px; color: #7d5a00; margin: 0;">Staff has been alerted to verify the soundbox/SMS for ${currency}${Number(order.total).toFixed(2)}. This screen updates automatically.</p>
+            <h4 style="font-size: 18px; color: #ffbe53; margin: 0 0 4px; font-weight: 700;">UPI Payment Pending Verification</h4>
+            <p style="font-size: 13.5px; color: #c9ded3; margin: 0;">Staff has been alerted to verify soundbox/SMS for ${currency}${Number(order.total).toFixed(2)}. This screen updates automatically.</p>
           </div>
         `;
       } else {
         paymentCardHtml = `
-          <div style="background: #fff; border: 1.5px solid var(--line); border-radius: var(--radius-md); padding: 20px; margin-top: 24px; box-shadow: var(--shadow-sm);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+          <div style="background: rgba(8, 25, 16, 0.95); border: 1.5px solid rgba(226, 123, 30, 0.35); border-radius: var(--radius-md); padding: 22px; margin-top: 24px; box-shadow: 0 8px 30px rgba(0,0,0,0.4);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
               <div>
-                <h4 style="font-size: 16px; font-weight: 700; color: var(--ink); margin: 0;">Settle Bill &amp; Pay</h4>
-                <p style="font-size: 12.5px; color: var(--muted); margin: 2px 0 0;">Pay when you are done eating at table or counter</p>
+                <h4 style="font-size: 17px; font-weight: 700; color: #fff; margin: 0;">Settle Bill &amp; Pay</h4>
+                <p style="font-size: 12.5px; color: #ffbe53; margin: 3px 0 0;">Pay when you are done eating at table or counter</p>
               </div>
-              <span style="font-size: 22px;">💳</span>
+              <span style="font-size: 24px;">💳</span>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
               <button type="button" class="btn btn-sm ${activePayTab === 'upi' ? 'btn-primary' : 'btn-outline'}" id="payTabUpiBtn" style="font-weight: 700;">
                 ⚡ Instant UPI
               </button>
@@ -209,17 +209,27 @@
             </div>
 
             <div id="payUpiSection" style="${activePayTab === 'upi' ? 'display:block;' : 'display:none;'}">
-              <div style="text-align: center; margin-bottom: 12px;">
-                <div id="orderUpiQrSvg" style="display: flex; justify-content: center; min-height: 150px; align-items: center;">Loading UPI QR...</div>
-                <div style="font-size: 12px; color: var(--muted); font-weight: 600; margin-top: 4px;">Scan with PhonePe, GPay, Paytm or BHIM</div>
+              <div style="text-align: center; margin-bottom: 14px;">
+                <div style="background: #ffffff; padding: 10px; border-radius: 12px; display: inline-flex; box-shadow: 0 6px 20px rgba(0,0,0,0.35); border: 2px solid #ffbe53;">
+                  <div id="orderUpiQrSvg" style="display: flex; justify-content: center; min-height: 160px; min-width: 160px; align-items: center;">Loading UPI QR...</div>
+                </div>
+                <div style="font-size: 12px; color: #c9ded3; font-weight: 600; margin-top: 8px;">Scan with PhonePe, Google Pay, Paytm or BHIM</div>
               </div>
 
-              <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;">
+              <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
                 <a href="#" id="orderUpiDeepLink" class="btn-upi-app btn-upi-universal" style="text-align: center;">⚡ Open Installed UPI App</a>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
-                  <a href="#" id="orderPhonepeLink" class="upi-quick-btn phonepe-color" style="text-align: center;">🟣 PhonePe</a>
-                  <a href="#" id="orderGpayLink" class="upi-quick-btn gpay-color" style="text-align: center;">🔵 GPay</a>
-                  <a href="#" id="orderPaytmLink" class="upi-quick-btn paytm-color" style="text-align: center;">🟦 Paytm</a>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                  <a href="#" id="orderPhonepeLink" class="upi-quick-btn phonepe-color">
+                    <img src="/images/phonepe-logo.svg" width="18" height="18" alt="PhonePe">
+                    <span>PhonePe</span>
+                  </a>
+                  <a href="#" id="orderGpayLink" class="upi-quick-btn gpay-color">
+                    <img src="/images/gpay-logo.svg" width="18" height="18" alt="GPay">
+                    <span>GPay</span>
+                  </a>
+                  <a href="#" id="orderPaytmLink" class="upi-quick-btn paytm-color">
+                    <img src="/images/paytm-logo.svg" width="42" height="15" alt="Paytm">
+                  </a>
                 </div>
               </div>
 
@@ -229,20 +239,20 @@
                 <button type="button" class="btn-copy-vpa" id="orderCopyVpaBtn">Copy</button>
               </div>
 
-              <div style="font-size: 11.5px; color: var(--muted); margin: 0 0 14px; text-align: center; line-height: 1.4;">
-                💡 <em>Make sure your registered UPI ID is saved in Admin Settings so PhonePe/GPay can route to your bank.</em>
+              <div style="font-size: 11.5px; color: #ffbe53; margin: 0 0 14px; text-align: center; line-height: 1.4;">
+                💡 <em>Enter your real registered UPI ID in Admin Settings so PhonePe/GPay can route payments to your bank.</em>
               </div>
 
-              <button type="button" class="btn btn-outline btn-sm" id="confirmUpiPaidBtn" style="width: 100%; border-color: var(--green); color: var(--green); font-weight: 700; padding: 10px;">
+              <button type="button" class="btn btn-outline btn-sm" id="confirmUpiPaidBtn" style="width: 100%; border-color: var(--green); color: #2ecc71; font-weight: 700; padding: 11px;">
                 ✓ I Have Paid via UPI (Alert Staff)
               </button>
             </div>
 
-            <div id="payCashSection" style="${activePayTab === 'cash' ? 'display:block;' : 'display:none;'} text-align: center; padding: 12px 6px;">
-              <p style="font-size: 13.5px; color: var(--ink); margin-bottom: 12px;">
+            <div id="payCashSection" style="${activePayTab === 'cash' ? 'display:block;' : 'display:none;'} text-align: center; padding: 16px 8px;">
+              <p style="font-size: 14px; color: #c9ded3; margin-bottom: 14px; line-height: 1.5;">
                 Ready to settle in cash? You can call the server with the printed bill to Table <strong>${order.table}</strong>, or pay at the front reception counter upon exit.
               </p>
-              <button type="button" class="btn btn-outline btn-sm" id="requestCashBillBtn" style="width: 100%; border-color: var(--accent); color: var(--accent); font-weight: 700; padding: 10px;">
+              <button type="button" class="btn btn-outline btn-sm" id="requestCashBillBtn" style="width: 100%; border-color: var(--accent); color: #ffbe53; font-weight: 700; padding: 11px;">
                 🛎️ Call Waiter with Cash Bill
               </button>
             </div>

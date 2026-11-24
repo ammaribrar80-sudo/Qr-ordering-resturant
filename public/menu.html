@@ -3,19 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Menu — Barbeque Nation</title>
+  <title>Barbeque Nation — Live Table Menu</title>
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/css/menu.css">
 </head>
 <body class="menu-page">
 
-  <!-- Header -->
+  <!-- Header with Official BBQ Nation Logo -->
   <header class="menu-header">
     <div class="menu-header-inner">
-      <div>
-        <h1 class="brand-title" id="restaurantName">Barbeque Nation</h1>
-        <div class="brand-outlet" id="outletName">Sentrum Mall, Kanyapur, Asansol</div>
-        <div class="brand-tagline" id="tagline">Live grills &amp; buffet</div>
+      <div class="brand-block">
+        <a href="/" title="Back to Home">
+          <img src="/images/bbq-logo.svg" alt="Barbeque Nation Logo" class="bbq-header-logo">
+        </a>
+        <div class="brand-info">
+          <h1 class="brand-title" id="restaurantName">Barbeque Nation</h1>
+          <div class="brand-outlet" id="outletName">Sentrum Mall, Kanyapur, Asansol</div>
+          <div class="brand-tagline" id="tagline">🔥 Live grills &amp; buffet</div>
+        </div>
       </div>
       <div class="table-badge-card">
         <span class="table-badge-label">Table</span>
@@ -36,7 +41,7 @@
   <div class="filter-bar">
     <div class="search-box">
       <span class="search-icon">🔍</span>
-      <input type="text" id="searchInput" class="form-input" placeholder="Search dishes, drinks, desserts...">
+      <input type="text" id="searchInput" class="form-input" placeholder="Search dishes, grills, desserts...">
     </div>
     <div class="tag-filters">
       <button class="tag-btn active" data-tag="all">All</button>
@@ -71,14 +76,14 @@
   <div class="cart-drawer-overlay" id="cartDrawerOverlay">
     <aside class="cart-drawer" id="cartDrawer">
       <div class="cart-drawer-header">
-        <h2 style="font-family: var(--font-serif); font-size: 20px;">Your Table Order</h2>
+        <h2 style="font-family: var(--font-serif); font-size: 20px; color: #fff;">Your Table Order</h2>
         <button class="modal-close" id="closeCartBtn">&times;</button>
       </div>
 
       <div class="cart-drawer-body">
-        <div style="margin-bottom: 14px; padding: 10px 14px; background: var(--cream); border-radius: var(--radius-sm); font-size: 13.5px; display: flex; justify-content: space-between;">
+        <div style="margin-bottom: 14px; padding: 10px 14px; background: rgba(8, 25, 16, 0.85); border: 1px solid rgba(226, 123, 30, 0.25); border-radius: var(--radius-sm); font-size: 13.5px; display: flex; justify-content: space-between; color: #c9ded3;">
           <span>Ordering for:</span>
-          <strong>Table <span id="cartTableNum">1</span></strong>
+          <strong style="color: #ffbe53;">Table <span id="cartTableNum">1</span></strong>
         </div>
 
         <div id="cartItemsList">
@@ -98,12 +103,12 @@
         </div>
         <div class="bill-row total">
           <span>Total</span>
-          <span id="cartTotal">₹0.00</span>
+          <span id="cartTotal" style="color: #ffbe53;">₹0.00</span>
         </div>
-        <div style="font-size: 12px; color: var(--muted); text-align: center; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+        <div style="font-size: 12px; color: #8ea89b; text-align: center; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 6px;">
           <span>🧾</span> Pay after dining — Counter billing or instant UPI available on your bill.
         </div>
-        <button class="btn btn-primary btn-lg" id="submitOrderBtn" style="width: 100%; margin-top: 10px;">
+        <button class="btn btn-primary btn-lg" id="submitOrderBtn" style="width: 100%; margin-top: 12px;">
           Send Order to Kitchen
         </button>
       </div>
@@ -116,12 +121,12 @@
       <div class="modal-header">
         <div>
           <h3 class="modal-title">🛎️ Call Waiter &amp; Table Service</h3>
-          <p style="font-size: 13px; color: var(--muted); margin: 3px 0 0;">Table <strong id="waiterTableNum">1</strong> assistance</p>
+          <p style="font-size: 13px; color: #ffbe53; margin: 3px 0 0;">Table <strong id="waiterTableNum">1</strong> assistance</p>
         </div>
         <button class="modal-close" id="closeWaiterModal">&times;</button>
       </div>
 
-      <p style="font-size: 13.5px; color: var(--muted); margin-bottom: 12px;">Tap what you need and a team member will assist you right away:</p>
+      <p style="font-size: 13.5px; color: #c9ded3; margin-bottom: 14px;">Tap what you need and a team member will assist you right away:</p>
 
       <div class="waiter-options-grid">
         <button type="button" class="waiter-opt-btn active" data-type="water">
@@ -150,14 +155,14 @@
         </button>
       </div>
 
-      <div class="form-group" style="margin-top: 14px;">
+      <div class="form-group" style="margin-top: 16px;">
         <label class="form-label" for="waiterNote">Specific Note (Optional)</label>
         <input type="text" id="waiterNote" class="form-input" placeholder="E.g., warm drinking water, 2 extra forks...">
       </div>
 
       <div id="waiterActiveStatus" class="waiter-status-box" style="display: none;"></div>
 
-      <button type="button" class="btn btn-primary btn-lg" id="submitWaiterBtn" style="width: 100%; margin-top: 14px;">
+      <button type="button" class="btn btn-primary btn-lg" id="submitWaiterBtn" style="width: 100%; margin-top: 16px;">
         🔔 Notify Staff Now
       </button>
     </div>
@@ -170,7 +175,7 @@
         <h3 class="modal-title">Select Your Table</h3>
         <button class="modal-close" id="closeTableModal">&times;</button>
       </div>
-      <p style="font-size: 14px; color: var(--muted); margin-bottom: 16px;">
+      <p style="font-size: 14px; color: #c9ded3; margin-bottom: 16px;">
         Look for the number card on your table stand:
       </p>
       <div class="form-group">
@@ -178,7 +183,7 @@
           <!-- Options populated via JS -->
         </select>
       </div>
-      <button class="btn btn-primary" id="saveTableBtn" style="width: 100%; margin-top: 10px;">
+      <button class="btn btn-primary" id="saveTableBtn" style="width: 100%; margin-top: 12px;">
         Confirm Table
       </button>
     </div>

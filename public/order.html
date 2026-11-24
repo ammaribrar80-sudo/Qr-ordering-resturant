@@ -12,21 +12,42 @@
       border-radius: var(--radius-md);
       text-align: center;
       margin-bottom: 24px;
-      font-weight: 600;
+      font-weight: 700;
       font-size: 15px;
+      letter-spacing: 0.02em;
     }
-    .banner-new { background: #e8f4fd; color: #1e6091; border: 1px solid #bce0fd; }
-    .banner-preparing { background: #fef9e7; color: #b78103; border: 1px solid #fae8a4; }
-    .banner-ready { background: #eafaf1; color: #1e8449; border: 1px solid #a9dfbf; }
-    .banner-completed { background: #f2f3f4; color: #566573; border: 1px solid #d5d8dc; }
-    .banner-cancelled { background: #fdedec; color: #a93226; border: 1px solid #f5b7b1; }
+    .banner-new { background: rgba(52, 152, 219, 0.2); color: #74b9ff; border: 1.5px solid rgba(52, 152, 219, 0.45); }
+    .banner-preparing { background: rgba(243, 156, 18, 0.2); color: #ffbe53; border: 1.5px solid rgba(243, 156, 18, 0.45); }
+    .banner-ready { background: rgba(46, 204, 113, 0.2); color: #55efc4; border: 1.5px solid rgba(46, 204, 113, 0.45); }
+    .banner-completed { background: rgba(149, 165, 166, 0.2); color: #dfe6e9; border: 1.5px solid rgba(149, 165, 166, 0.45); }
+    .banner-cancelled { background: rgba(231, 76, 60, 0.2); color: #ff7675; border: 1.5px solid rgba(231, 76, 60, 0.45); }
+    
+    .tracking-brand-header {
+      max-width: 640px;
+      margin: 0 auto 24px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .tracking-logo {
+      height: 44px;
+      width: auto;
+      filter: drop-shadow(0 4px 10px rgba(226, 123, 30, 0.5));
+    }
   </style>
 </head>
-<body style="background: var(--cream); min-height: 100vh; padding: 24px 16px 60px;">
+<body style="min-height: 100vh; padding: 24px 16px 60px;">
 
-  <div style="max-width: 600px; margin: 0 auto; text-align: center; margin-bottom: 24px;">
-    <h1 style="font-family: var(--font-serif); font-size: 28px; color: var(--ink);" id="resName">Barbeque Nation</h1>
-    <p style="font-size: 14px; color: var(--muted);" id="resOutlet">Live Order Tracking</p>
+  <div class="tracking-brand-header">
+    <a href="/" title="Back to Home">
+      <img src="/images/bbq-logo.svg" alt="Barbeque Nation" class="tracking-logo">
+    </a>
+    <div>
+      <h1 style="font-family: var(--font-serif); font-size: 26px; color: #fff; margin: 0;" id="resName">Barbeque Nation</h1>
+      <p style="font-size: 13.5px; color: #ffbe53; margin: 2px 0 0;" id="resOutlet">Live Order Tracking • Sentrum Mall, Asansol</p>
+    </div>
   </div>
 
   <main class="order-tracking-card" id="trackingContainer">
