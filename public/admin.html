@@ -33,6 +33,10 @@
       <span>📋 Live Orders</span>
       <span class="counter-badge" id="newOrdersCount" style="display: none;">0</span>
     </div>
+    <div class="admin-nav-item" data-tab="requests">
+      <span>🛎️ Table Requests</span>
+      <span class="counter-badge" id="requestsCount" style="display: none; background: var(--accent);">0</span>
+    </div>
     <div class="admin-nav-item" data-tab="menu">
       <span>🍴 Menu Items</span>
     </div>
@@ -49,6 +53,9 @@
 
     <!-- Tab 1: Orders -->
     <section id="tab-orders" class="tab-pane active">
+      <!-- Live Table Service Alert Strip -->
+      <div class="service-alerts-bar" id="serviceAlertsBar" style="display: none;"></div>
+
       <div class="orders-toolbar">
         <div class="status-filter-pills" id="orderFilterPills">
           <button class="btn btn-sm btn-dark filter-pill active" data-filter="all">All Orders</button>
@@ -66,6 +73,23 @@
 
       <div class="orders-grid" id="ordersContainer">
         <div style="text-align: center; grid-column: 1/-1; padding: 40px; color: var(--muted);">Loading orders...</div>
+      </div>
+    </section>
+
+    <!-- Tab 2: Table Service Requests -->
+    <section id="tab-requests" class="tab-pane" style="display: none;">
+      <div class="menu-mgmt-header">
+        <div>
+          <h2 style="font-family: var(--font-serif); font-size: 24px;">🛎️ Table Service Requests</h2>
+          <p style="font-size: 14px; color: var(--muted);">Real-time alerts for water refills, extra cutlery, bill requests, and server calls</p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn btn-outline btn-sm" id="refreshRequestsBtn">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <div class="requests-grid" id="requestsContainer">
+        <div style="text-align: center; grid-column: 1/-1; padding: 40px; color: var(--muted);">Loading service requests...</div>
       </div>
     </section>
 
@@ -128,6 +152,15 @@
           <div class="form-group">
             <label class="form-label" for="settingTableCount">Number of Tables (1 - 100)</label>
             <input type="number" id="settingTableCount" class="form-input" min="1" max="100" style="max-width: 140px;" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="settingUpiVpa">UPI ID (VPA) for PhonePe / GPay / Paytm</label>
+            <input type="text" id="settingUpiVpa" class="form-input" placeholder="e.g. barbequenation@okaxis">
+            <span style="font-size: 12px; color: var(--muted); margin-top: 4px; display: block;">Pre-filled into dynamic QR codes and mobile UPI links for guests.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="settingUpiPayeeName">UPI Business / Payee Display Name</label>
+            <input type="text" id="settingUpiPayeeName" class="form-input" placeholder="e.g. Barbeque Nation">
           </div>
           <div class="form-group">
             <label class="form-label" for="settingFooterNote">Footer Allergy &amp; Legal Note</label>

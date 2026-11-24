@@ -60,12 +60,20 @@
   const chimeLabel = document.getElementById('chimeLabel');
   const navResName = document.getElementById('navResName');
   const newOrdersCount = document.getElementById('newOrdersCount');
+  const requestsCount = document.getElementById('requestsCount');
+  const serviceAlertsBar = document.getElementById('serviceAlertsBar');
+  const requestsContainer = document.getElementById('requestsContainer');
+  const refreshRequestsBtn = document.getElementById('refreshRequestsBtn');
   const toastContainer = document.getElementById('toastContainer');
+
+  let serviceRequestsList = [];
+  let knownRequestIds = new Set();
 
   // Tabs
   const navItems = document.querySelectorAll('.admin-nav-item');
   const tabPanes = {
     orders: document.getElementById('tab-orders'),
+    requests: document.getElementById('tab-requests'),
     menu: document.getElementById('tab-menu'),
     tables: document.getElementById('tab-tables'),
     settings: document.getElementById('tab-settings'),
@@ -161,7 +169,8 @@
       if (tabPanes[k]) tabPanes[k].style.display = k === tab ? 'block' : 'none';
     });
 
-    if (tab === 'orders') fetchOrders();
+    if (tab === 'orders') { fetchOrders(); fetchServiceRequests(); }
+    if (tab === 'requests') fetchServiceRequests();
     if (tab === 'menu') loadMenuData();
     if (tab === 'tables') loadTables();
     if (tab === 'settings') loadSettings();
@@ -170,10 +179,16 @@
   function initDashboard() {
     loadSettings();
     switchTab('orders');
+    fetchServiceRequests();
     if (pollTimer) clearInterval(pollTimer);
     pollTimer = setInterval(() => {
-      if (currentTab === 'orders') fetchOrders(true);
+      fetchOrders(true);
+      fetchServiceRequests(true);
     }, 3500);
+  }
+
+  if (refreshRequestsBtn) {
+    refreshRequestsBtn.addEventListener('click', () => fetchServiceRequests());
   }
 
   /* ------------------------------------------------------------- */
@@ -308,7 +323,15 @@
             <div class="order-code">Order #${escapeHtml(order.code)}</div>
             <div class="order-time">${timeAgo}</div>
           </div>
-          <span class="badge badge-status status-${order.status}">${order.status}</span>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+            <span class="badge badge-status status-${order.status}">${order.status}</span>
+            ${order.paymentStatus === 'paid'
+              ? `<span class="badge badge-paid">✅ PAID (${escapeHtml((order.paymentMethod || 'cash').toUpperCase())})</span>`
+              : order.paymentStatus === 'pending_verification'
+              ? `<span class="badge badge-pending-pay">⚠️ VERIFY ${(order.paymentMethod || 'upi').toUpperCase()}</span>`
+              : `<span class="badge badge-unpaid">⏳ ${(order.paymentMethod || 'cash').toUpperCase()} (UNPAID)</span>`
+            }
+          </div>
         </div>
 
         <ul class="order-items-list">${itemsHtml}</ul>
@@ -316,13 +339,169 @@
 
         <div class="order-card-footer">
           <span class="order-total-amount">Total: ₹${Number(order.total).toFixed(2)}</span>
-          <div class="order-actions">${actionButtons}</div>
+          <div class="order-actions" style="display: flex; align-items: center; gap: 8px;">
+            <button class="btn-pay-toggle" onclick="window.toggleOrderPayment('${order.id}', '${order.paymentStatus === 'paid' ? 'pending' : 'paid'}')">
+              ${order.paymentStatus === 'paid' ? 'Mark Unpaid' : '💵 Verify & Mark Paid'}
+            </button>
+            ${actionButtons}
+          </div>
         </div>
       `;
 
       ordersContainer.appendChild(card);
     }
   }
+
+  window.toggleOrderPayment = async function(orderId, nextPaymentStatus) {
+    try {
+      const res = await fetch(`/api/admin/orders/${encodeURIComponent(orderId)}/payment`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentStatus: nextPaymentStatus })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update payment status.');
+      showToast(`Order #${data.order.code} payment marked as ${nextPaymentStatus}.`, 'success');
+      fetchOrders();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  /* ------------------------------------------------------------- */
+  /*  Service Requests Functions (Call Waiter)                     */
+  /* ------------------------------------------------------------- */
+
+  async function fetchServiceRequests(isPolling = false) {
+    try {
+      const res = await fetch('/api/admin/service-requests');
+      if (!res.ok) return;
+      const data = await res.json();
+      const requests = data.serviceRequests || [];
+
+      if (isPolling && knownRequestIds.size > 0) {
+        let hasNewPending = false;
+        for (const req of requests) {
+          if (!knownRequestIds.has(req.id) && req.status === 'pending') {
+            hasNewPending = true;
+            break;
+          }
+        }
+        if (hasNewPending) {
+          playKitchenChime();
+          showToast('🛎️ New table service request!', 'info');
+        }
+      }
+
+      knownRequestIds = new Set(requests.map(r => r.id));
+      serviceRequestsList = requests;
+
+      const pendingCount = requests.filter(r => r.status === 'pending').length;
+      if (requestsCount) {
+        if (pendingCount > 0) {
+          requestsCount.textContent = pendingCount;
+          requestsCount.style.display = 'inline-block';
+        } else {
+          requestsCount.style.display = 'none';
+        }
+      }
+
+      renderServiceAlertsBar();
+      if (currentTab === 'requests') renderServiceRequests();
+    } catch (e) {
+      console.warn('Error fetching service requests:', e);
+    }
+  }
+
+  function renderServiceAlertsBar() {
+    if (!serviceAlertsBar) return;
+    const pending = serviceRequestsList.filter(r => r.status === 'pending');
+    if (pending.length === 0) {
+      serviceAlertsBar.style.display = 'none';
+      serviceAlertsBar.innerHTML = '';
+      return;
+    }
+
+    const typeIcons = { water: '💧', cutlery: '🍴', bill: '🧾', waiter: '🙋', clean: '🧹', other: '💬' };
+    serviceAlertsBar.style.display = 'flex';
+    serviceAlertsBar.innerHTML = pending.map(req => `
+      <div class="service-alert-item">
+        <div class="alert-left">
+          <span class="alert-icon">${typeIcons[req.type] || '🛎️'}</span>
+          <span class="alert-table-badge">TABLE ${req.table}</span>
+          <span class="alert-text">Request: <strong>${escapeHtml(req.type.toUpperCase())}</strong> ${req.note ? '— "' + escapeHtml(req.note) + '"' : ''}</span>
+          <span class="alert-time">(${formatElapsed(req.createdAt)})</span>
+        </div>
+        <div class="alert-actions">
+          <button class="btn btn-primary btn-sm" onclick="window.resolveServiceRequest('${req.id}')" style="background: var(--green);">✅ Mark Resolved</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderServiceRequests() {
+    if (!requestsContainer) return;
+    if (serviceRequestsList.length === 0) {
+      requestsContainer.innerHTML = `
+        <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--muted);">
+          <div style="font-size: 38px; margin-bottom: 10px;">🛎️</div>
+          <p style="font-size: 16px; font-weight: 600;">No table service requests</p>
+          <p style="font-size: 13.5px; margin-top: 4px;">Diner requests for water, cutlery, or bills will appear here live.</p>
+        </div>
+      `;
+      return;
+    }
+
+    const typeIcons = { water: '💧', cutlery: '🍴', bill: '🧾', waiter: '🙋', clean: '🧹', other: '💬' };
+    requestsContainer.innerHTML = serviceRequestsList.map(req => {
+      const isPending = req.status === 'pending';
+      return `
+        <article class="request-card ${isPending ? 'pending' : 'resolved'}">
+          <div class="request-card-header">
+            <div>
+              <div class="order-table-num">Table ${req.table}</div>
+              <div class="request-type-label">
+                <span>${typeIcons[req.type] || '🛎️'}</span>
+                <span>${escapeHtml(req.type.toUpperCase())}</span>
+              </div>
+            </div>
+            <span class="badge ${isPending ? 'badge-pending-pay' : 'badge-paid'}">${isPending ? 'PENDING' : 'RESOLVED'}</span>
+          </div>
+
+          ${req.note ? `<div class="request-note-box"><strong>Note:</strong> ${escapeHtml(req.note)}</div>` : ''}
+
+          <div style="font-size: 12px; color: var(--muted);">
+            Requested: ${formatElapsed(req.createdAt)}
+            ${req.resolvedAt ? `&bull; Resolved: ${formatElapsed(req.resolvedAt)}` : ''}
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+            ${isPending ? `
+              <button class="btn btn-primary btn-sm" onclick="window.resolveServiceRequest('${req.id}')" style="background: var(--green);">
+                ✅ Resolve Request
+              </button>
+            ` : `<span style="font-size: 12.5px; color: var(--green); font-weight: 600;">✓ Completed</span>`}
+          </div>
+        </article>
+      `;
+    }).join('');
+  }
+
+  window.resolveServiceRequest = async function(id) {
+    try {
+      const res = await fetch(`/api/admin/service-requests/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'resolved' })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to resolve request.');
+      showToast('Table service request resolved.', 'success');
+      fetchServiceRequests();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
 
   window.updateOrderStatus = async function(orderId, nextStatus) {
     try {
@@ -664,6 +843,8 @@
   const settingTagline = document.getElementById('settingTagline');
   const settingCurrency = document.getElementById('settingCurrency');
   const settingTableCount = document.getElementById('settingTableCount');
+  const settingUpiVpa = document.getElementById('settingUpiVpa');
+  const settingUpiPayeeName = document.getElementById('settingUpiPayeeName');
   const settingFooterNote = document.getElementById('settingFooterNote');
 
   async function loadSettings() {
@@ -677,6 +858,8 @@
       settingTagline.value = s.tagline || '';
       settingCurrency.value = s.currency || '₹';
       settingTableCount.value = s.tableCount || 17;
+      if (settingUpiVpa) settingUpiVpa.value = s.upiVpa || 'barbequenation@okaxis';
+      if (settingUpiPayeeName) settingUpiPayeeName.value = s.upiPayeeName || s.restaurantName || '';
       settingFooterNote.value = s.footerNote || '';
 
       if (navResName) navResName.textContent = s.restaurantName || 'Barbeque Nation';
@@ -694,6 +877,8 @@
       tagline: settingTagline.value.trim(),
       currency: settingCurrency.value.trim(),
       tableCount: parseInt(settingTableCount.value, 10),
+      upiVpa: settingUpiVpa ? settingUpiVpa.value.trim() : undefined,
+      upiPayeeName: settingUpiPayeeName ? settingUpiPayeeName.value.trim() : undefined,
       footerNote: settingFooterNote.value.trim()
     };
 

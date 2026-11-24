@@ -562,3 +562,357 @@
   color: var(--ink);
   font-weight: 700;
 }
+
+/* ==========================================================================
+   Floating Call Waiter Button & Animation Effects
+   ========================================================================== */
+
+.call-waiter-floating-btn {
+  position: fixed;
+  left: 20px;
+  bottom: 24px;
+  z-index: 95;
+  background: linear-gradient(135deg, #1f3d2f 0%, #2f5643 100%);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  padding: 12px 20px 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgba(31, 61, 47, 0.35);
+  cursor: pointer;
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateZ(0);
+}
+
+.call-waiter-floating-btn:hover {
+  transform: translateY(-3px) scale(1.04);
+  box-shadow: 0 12px 28px rgba(31, 61, 47, 0.45);
+  background: linear-gradient(135deg, #254b39 0%, #36634c 100%);
+}
+
+.call-waiter-floating-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.waiter-btn-icon {
+  font-size: 18px;
+  display: inline-block;
+  animation: gentleDing 4s ease-in-out infinite;
+}
+
+@keyframes gentleDing {
+  0%, 80%, 100% { transform: rotate(0deg); }
+  85% { transform: rotate(-15deg); }
+  90% { transform: rotate(15deg); }
+  95% { transform: rotate(-8deg); }
+}
+
+.waiter-btn-ping {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 rgba(217, 83, 30, 0.7);
+  animation: pulsePing 2.5s infinite;
+}
+
+@keyframes pulsePing {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(217, 83, 30, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(217, 83, 30, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(217, 83, 30, 0); }
+}
+
+/* Waiter Modal Options Grid */
+.waiter-modal-card {
+  max-width: 440px;
+}
+
+.waiter-options-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.waiter-opt-btn {
+  background: var(--cream);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-align: left;
+}
+
+.waiter-opt-btn:hover {
+  background: #ede6d8;
+  transform: translateY(-1px);
+}
+
+.waiter-opt-btn.active {
+  background: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px rgba(217, 83, 30, 0.15);
+  color: var(--accent);
+}
+
+.opt-icon {
+  font-size: 20px;
+}
+
+.waiter-status-box {
+  background: #eafaf1;
+  border: 1px solid #a9dfbf;
+  color: #1e8449;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-top: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: fadeInUp 0.25s ease;
+}
+
+/* ==========================================================================
+   Checkout Payment Methods & Dynamic UPI
+   ========================================================================== */
+
+.checkout-payment-section {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px dashed var(--line);
+}
+
+.payment-section-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.payment-options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.payment-method-card {
+  position: relative;
+  background: var(--cream);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: block;
+}
+
+.payment-method-card input[type="radio"] {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  accent-color: var(--accent);
+}
+
+.payment-method-card.active {
+  background: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 4px 14px rgba(217, 83, 30, 0.12);
+}
+
+.pay-card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.pay-apps-badges {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.app-pill {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #fff;
+}
+.app-phonepe { background: #5f259f; }
+.app-gpay { background: #1a73e8; }
+.app-paytm { background: #00b9f5; color: #002e6e; }
+
+.pay-card-subtitle {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.25;
+}
+
+/* Dynamic UPI Box */
+.upi-live-box {
+  background: #faf8f5;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  text-align: center;
+  animation: fadeInUp 0.22s ease;
+}
+
+.upi-qr-wrapper {
+  margin: 0 auto 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.upi-qr-placeholder {
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upi-qr-wrapper svg {
+  width: 170px;
+  height: 170px;
+  display: block;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: #fff;
+  padding: 6px;
+}
+
+.upi-scan-note {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.upi-deep-links {
+  margin: 12px 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-upi-universal {
+  display: block;
+  background: var(--ink);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: var(--radius-pill);
+  font-size: 13.5px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.btn-upi-universal:hover {
+  background: #2b5240;
+  transform: translateY(-1px);
+}
+
+.upi-app-quick-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.upi-quick-btn {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 7px 4px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: #fff;
+  transition: transform 0.16s ease;
+}
+
+.upi-quick-btn:hover {
+  transform: scale(1.03);
+}
+
+.phonepe-color { background: #5f259f; }
+.gpay-color { background: #1a73e8; }
+.paytm-color { background: #002e6e; }
+
+.upi-vpa-row {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.btn-copy-vpa {
+  background: var(--cream);
+  border: 1px solid var(--line);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.btn-copy-vpa:hover {
+  background: #ede6d8;
+}
+
+/* Subtle animations & micro-interactions */
+.menu-card {
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.menu-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07);
+}
+
+.item-emoji {
+  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.menu-card:hover .item-emoji {
+  transform: scale(1.15) rotate(4deg);
+}
+
+@media (max-width: 600px) {
+  .call-waiter-floating-btn {
+    left: 14px;
+    bottom: 20px;
+    padding: 10px 16px 10px 12px;
+    font-size: 13px;
+  }
+  .payment-options-grid {
+    grid-template-columns: 1fr;
+  }
+}

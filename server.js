@@ -26,6 +26,8 @@ const DEFAULT_SETTINGS = {
   currency: '\u20b9',
   tableCount: 17,
   footerNote: 'Demo menu. Prices in INR. Tell your server about allergies. Independent demo - not affiliated with or endorsed by Barbeque Nation.',
+  upiVpa: 'barbequenation@okaxis',
+  upiPayeeName: 'Barbeque Nation',
 };
 
 /* ------------------------------------------------------------------ */
@@ -66,6 +68,7 @@ function seedData() {
       { id: 'sweet-lassi', categoryId: 'drinks', name: 'Sweet Lassi', description: 'Chilled yoghurt drink with a touch of cardamom.', price: 155, emoji: '🥛', tag: 'Vegetarian', available: true, sort: 2 },
     ],
     orders: [],
+    serviceRequests: [],
   };
 }
 
@@ -89,6 +92,7 @@ function loadDb() {
       categories: Array.isArray(parsed.categories) ? parsed.categories : [],
       items: Array.isArray(parsed.items) ? parsed.items : [],
       orders: Array.isArray(parsed.orders) ? parsed.orders : [],
+      serviceRequests: Array.isArray(parsed.serviceRequests) ? parsed.serviceRequests : [],
     };
   } catch (err) {
     const backup = `${DATA_FILE}.broken-${Date.now()}`;
@@ -220,6 +224,8 @@ function publicOrder(order) {
     note: order.note,
     total: order.total,
     status: order.status,
+    paymentMethod: order.paymentMethod || 'cash',
+    paymentStatus: order.paymentStatus || 'pending',
     createdAt: order.createdAt,
     updatedAt: order.updatedAt,
   };
@@ -255,6 +261,8 @@ function publicRestaurant() {
     tagline: s.tagline,
     currency: s.currency,
     footerNote: s.footerNote,
+    upiVpa: s.upiVpa || 'barbequenation@okaxis',
+    upiPayeeName: s.upiPayeeName || s.restaurantName,
   };
 }
 
@@ -296,6 +304,71 @@ app.get('/api/qr', async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+app.get('/api/upi-qr', async (req, res, next) => {
+  try {
+    const amount = Number(req.query.amount) || 0;
+    const table = Math.max(1, parseInt(req.query.table, 10) || 1);
+    const orderCode = req.query.code || '';
+    const vpa = db.settings.upiVpa || 'barbequenation@okaxis';
+    const payee = db.settings.upiPayeeName || db.settings.restaurantName;
+    const note = `Table ${table}${orderCode ? ' Order #' + orderCode : ''}`;
+    const amountStr = amount > 0 ? money(amount).toFixed(2) : '';
+    const upiUri = `upi://pay?pa=${encodeURIComponent(vpa)}&pn=${encodeURIComponent(payee)}${amountStr ? '&am=' + amountStr : ''}&cu=INR&tn=${encodeURIComponent(note)}`;
+    const svg = await QRCode.toString(upiUri, {
+      type: 'svg',
+      margin: 2,
+      width: 200,
+      errorCorrectionLevel: 'M',
+      color: { dark: '#000000', light: '#ffffff' },
+    });
+    res.json({ upiUri, svg, vpa, payee, amount: money(amount), note });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* Service Requests (Call Waiter / Table Services) */
+app.post('/api/service-requests', (req, res, next) => {
+  try {
+    if (!allow(`srv:${req.ip}`, 20, 10 * 60 * 1000)) {
+      throw new HttpError(429, 'Too many requests. Please wait a moment.');
+    }
+    const body = req.body || {};
+    const table = Number(body.table);
+    if (!Number.isInteger(table) || table < 1 || table > db.settings.tableCount) {
+      throw new HttpError(400, 'Please choose a valid table.');
+    }
+    const validTypes = ['water', 'cutlery', 'bill', 'waiter', 'clean', 'other'];
+    const type = validTypes.includes(body.type) ? body.type : 'waiter';
+    const note = (body.note || '').trim().slice(0, 140);
+    const now = new Date().toISOString();
+    const serviceRequest = {
+      id: crypto.randomUUID(),
+      table,
+      type,
+      note,
+      status: 'pending',
+      createdAt: now,
+      resolvedAt: null,
+    };
+    db.serviceRequests = db.serviceRequests || [];
+    db.serviceRequests.push(serviceRequest);
+    saveDb();
+    res.status(201).json({ serviceRequest });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.get('/api/service-requests', (req, res) => {
+  const table = parseInt(req.query.table, 10);
+  const requests = (db.serviceRequests || [])
+    .filter(r => !table || r.table === table)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 20);
+  res.json({ serviceRequests: requests });
 });
 
 app.get('/api/menu', (req, res) => {
@@ -346,6 +419,11 @@ app.post('/api/orders', (req, res, next) => {
     const total = money(orderItems.reduce((sum, line) => sum + line.price * line.qty, 0));
     db.orderSeq = Number(db.orderSeq || 100) + 1;
     const now = new Date().toISOString();
+    const allowedMethods = ['cash', 'upi', 'upi_phonepe', 'upi_gpay', 'upi_paytm', 'upi_qr'];
+    const paymentMethod = allowedMethods.includes(body.paymentMethod) ? body.paymentMethod : 'cash';
+    // Anti-fraud: UPI claims start as pending_verification until staff or soundbox validates
+    const paymentStatus = paymentMethod.startsWith('upi') ? 'pending_verification' : 'pending';
+
     const order = {
       id: crypto.randomUUID(),
       code: String(db.orderSeq),
@@ -354,6 +432,8 @@ app.post('/api/orders', (req, res, next) => {
       note,
       total,
       status: 'new',
+      paymentMethod,
+      paymentStatus,
       createdAt: now,
       updatedAt: now,
       history: [{ status: 'new', at: now }],
@@ -437,12 +517,14 @@ app.get('/api/admin/orders', requireAdmin, (req, res) => {
 app.get('/api/admin/orders.csv', requireAdmin, (req, res) => {
   const orders = [...db.orders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   const esc = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
-  const rows = [['Order', 'Table', 'Status', 'Items', 'Note', 'Total', 'Placed at']];
+  const rows = [['Order', 'Table', 'Status', 'Payment Method', 'Payment Status', 'Items', 'Note', 'Total', 'Placed at']];
   for (const order of orders) {
     rows.push([
       order.code,
       order.table,
       order.status,
+      order.paymentMethod || 'cash',
+      order.paymentStatus || 'pending',
       order.items.map((line) => `${line.qty}x ${line.name}`).join('; '),
       order.note,
       money(order.total).toFixed(2),
@@ -469,6 +551,51 @@ app.patch('/api/admin/orders/:id', requireAdmin, (req, res, next) => {
       saveDb();
     }
     res.json({ order });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* Staff Payment Status Toggle (Anti-fraud soundbox/SMS confirmation) */
+app.patch('/api/admin/orders/:id/payment', requireAdmin, (req, res, next) => {
+  try {
+    const order = db.orders.find((entry) => entry.id === req.params.id);
+    if (!order) throw new HttpError(404, 'Order not found.');
+    const paymentStatus = req.body && req.body.paymentStatus;
+    if (!['pending', 'pending_verification', 'paid'].includes(paymentStatus)) {
+      throw new HttpError(400, 'Invalid payment status.');
+    }
+    const now = new Date().toISOString();
+    order.paymentStatus = paymentStatus;
+    if (req.body.paymentMethod) order.paymentMethod = req.body.paymentMethod;
+    order.updatedAt = now;
+    saveDb();
+    res.json({ order: publicOrder(order) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* Admin Service Requests (Call Waiter / Table Assistance Queue) */
+app.get('/api/admin/service-requests', requireAdmin, (req, res) => {
+  const requests = (db.serviceRequests || [])
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 100);
+  res.json({ serviceRequests: requests, serverTime: new Date().toISOString() });
+});
+
+app.patch('/api/admin/service-requests/:id', requireAdmin, (req, res, next) => {
+  try {
+    db.serviceRequests = db.serviceRequests || [];
+    const request = db.serviceRequests.find((entry) => entry.id === req.params.id);
+    if (!request) throw new HttpError(404, 'Service request not found.');
+    const status = (req.body && req.body.status) || 'resolved';
+    request.status = status;
+    if (status === 'resolved') {
+      request.resolvedAt = new Date().toISOString();
+    }
+    saveDb();
+    res.json({ serviceRequest: request });
   } catch (err) {
     next(err);
   }
@@ -616,6 +743,8 @@ app.patch('/api/admin/settings', requireAdmin, (req, res, next) => {
     if (body.outletName !== undefined) db.settings.outletName = asString(body.outletName, 'Outlet name', { max: 100, required: false });
     if (body.tagline !== undefined) db.settings.tagline = asString(body.tagline, 'Tagline', { max: 100, required: false });
     if (body.currency !== undefined) db.settings.currency = asString(body.currency, 'Currency symbol', { max: 6 });
+    if (body.upiVpa !== undefined) db.settings.upiVpa = asString(body.upiVpa, 'UPI ID', { max: 80, required: false });
+    if (body.upiPayeeName !== undefined) db.settings.upiPayeeName = asString(body.upiPayeeName, 'UPI Payee Name', { max: 80, required: false });
     if (body.footerNote !== undefined) db.settings.footerNote = asString(body.footerNote, 'Footer note', { max: 200, required: false });
     if (body.tableCount !== undefined) {
       const count = Number(body.tableCount);
