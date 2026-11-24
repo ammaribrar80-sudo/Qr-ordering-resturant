@@ -1,158 +1,129 @@
-# Barbeque Nation — QR Table Ordering
+# 🍽️ Barbeque Nation — QR Table Ordering & Kitchen Dashboard
 
-A QR-code restaurant ordering demo with:
+> A full-stack, contactless QR table ordering system and real-time kitchen operations dashboard built with Node.js, Express, and Vanilla JavaScript.
 
-- Guest menu that opens with the table number preset
-- Cart with quantities, kitchen notes, and order submission
-- Live order tracking for guests
-- Staff dashboard with live orders, status updates, menu management, table QR codes, and settings
+[![Node.js](https://img.shields.io/badge/Node.js-18%2B-green.svg)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-4.22-blue.svg)](https://expressjs.com/)
+[![License](https://img.shields.io/badge/License-MIT-orange.svg)](LICENSE)
+[![Zero Build Steps](https://img.shields.io/badge/Build-Vanilla%20JS%20%2F%20No%20Bundler-success.svg)](#)
 
-This folder is a complete copy of the project and is ready to open in VS Code.
+---
 
-## Requirements
+## 🌟 Highlights & Features
 
-- Node.js 18 or newer (Node 24 was used during development)
+- **📱 Guest Table Ordering (`/menu?table=1`)**:
+  - Automatically loads with the scanned table number preset.
+  - Category tabs navigation with smooth scrolling.
+  - Dietary filters (Vegetarian, Non-veg, Bestseller) and instant search.
+  - Interactive cart drawer with item notes, quantity modifiers, and subtotal.
+  - Direct order submission to kitchen (zero app download required).
+
+- **🔔 Live Guest Order Tracking (`/order?id=...`)**:
+  - Real-time milestone stepper (`Received` → `Cooking` → `Ready` → `Served`).
+  - Auto-polling keeps guests updated without manual page refreshes.
+  - Guest order cancellation before preparation begins.
+
+- **👨‍🍳 Staff Operations Dashboard (`/admin`)**:
+  - Protected with staff PIN authentication (Default: `2468`).
+  - **Live Orders Queue**: Instant order cards with elapsed timers, highlighted kitchen instructions, and one-click status transitions.
+  - **Synthesized Kitchen Audio Chime**: Audible alert using Web Audio API when a new table order arrives.
+  - **Menu Management**: Full CRUD for dishes & categories with instantaneous "In Stock / Sold Out" toggles.
+  - **Tables & QR Generator**: Dynamically generates QR SVGs for every table, allows one-click link copying, SVG downloads, and printable sheets.
+  - **Restaurant Settings**: Customise restaurant name, outlet location, tagline, currency symbol, and table count.
+  - **CSV Export**: One-click download of all restaurant orders for accounting and reporting.
+
+---
+
+## 🚀 Quickstart
+
+### Prerequisites
+- [Node.js](https://nodejs.org/) v18 or newer
 - npm
 
-## Run it
+### 1. Clone & Install
+```bash
+git clone https://github.com/YOUR_USERNAME/qr-restaurant.git
+cd qr-restaurant
+npm install
+```
 
-Open a terminal in this folder and run:
-
-```powershell
+### 2. Start the Server
+```bash
 npm start
 ```
 
-Then open:
-
-- Guest menu: http://localhost:3000/menu?table=1
-- Staff dashboard: http://localhost:3000/admin
-- Landing page: http://localhost:3000
-
-The first time it runs, the server creates `data/db.json` and seeds the demo menu, 12 tables, and settings.
-
-## Open it in VS Code
-
-This is a full-stack app. `server.js` is the backend and it also serves the files in `public/`.
-
-**Do not use the Live Server extension.** Live Server only serves static HTML/CSS/JS. It cannot run `server.js`, so the `/api/*` requests fail and the menu, login, and orders will not work.
-
-Instead, use one of these:
-
-1. Press **F5** in VS Code and choose **Run QR Restaurant (Express)**. This uses `.vscode/launch.json`.
-2. Or open **Terminal → New Terminal** and run:
-
-```powershell
-npm start
-```
-
-If PowerShell reports that `npm.ps1` cannot be loaded, use:
-
+If PowerShell shows script execution restrictions on Windows, run:
 ```powershell
 npm.cmd start
 ```
 
-Then open `http://localhost:3000` in your browser.
+The server automatically detects an open port (default `3000` or fallback `4000`) and displays:
+- **Landing Page & Table Simulator**: `http://localhost:4000`
+- **Guest Menu**: `http://localhost:4000/menu?table=1`
+- **Staff Kitchen Dashboard**: `http://localhost:4000/admin` *(PIN: `2468`)*
 
-## Staff dashboard PIN
+---
 
-The default PIN is:
+## 📱 Testing From a Mobile Phone (Same Wi-Fi)
 
-```text
-2468
-```
+When the server starts, it prints your local network IP (e.g., `http://192.168.1.50:4000`).
+1. Make sure your phone and computer are connected to the same Wi-Fi.
+2. Open that URL on your phone's browser, or scan any table QR code from **Staff Dashboard → Tables & QR**.
 
-Change it before using the app publicly by setting an environment variable:
+---
 
-```powershell
-$env:ADMIN_PIN = "your-new-pin"
-npm start
-```
+## 🎨 Customizing Styles & Animations
 
-## Using it from a phone on the same Wi-Fi
+All styles are organized cleanly in `public/css/`:
+- `public/css/base.css` — Color tokens (`--ink`, `--accent`, `--cream`), typography, buttons, and animations (`fadeInUp`, `popBounce`).
+- `public/css/menu.css` — Guest ordering UI, category nav, menu cards, and floating cart bar.
+- `public/css/admin.css` — Staff kitchen dashboard, order cards, and table grid.
 
-When the server starts, it prints a QR/phone address using your computer's LAN IP, for example:
+Feel free to tweak colors, fonts, or animations to match any restaurant brand!
 
-```text
-http://192.168.31.26:3000
-```
+---
 
-The QR codes in **Staff dashboard → Tables & QR** use that address. Phones must be on the same Wi-Fi network as this computer.
+## ☁️ Deploy Free to the Cloud (Live Demo Link)
 
-If the detected address is wrong, override it:
+To share this sample with clients or employers worldwide without running it locally, deploy it to **Render** or **Railway** for free:
 
-```powershell
-$env:PUBLIC_URL = "http://YOUR-LAN-IP:3000"
-npm start
-```
+### Deploy to Render (Recommended)
+1. Push this repository to your GitHub account.
+2. Go to [Render.com](https://render.com) and create a free account.
+3. Click **New +** → **Web Service** and select your GitHub repository.
+4. Set the following settings:
+   - **Environment**: `Node`
+   - **Build Command**: `npm install`
+   - **Start Command**: `node server.js`
+5. Click **Deploy Web Service**. Render gives you a free HTTPS live URL (e.g. `https://qr-restaurant-demo.onrender.com`)!
 
-You may also need to allow Node.js through Windows Firewall.
+---
 
-## Printing table QR codes
-
-1. Sign in at `/admin` with the PIN.
-2. Open **Tables & QR**.
-3. Click **Print all codes**.
-4. Print the sheet, cut out the cards, and place one on each table.
-
-Each QR code opens the guest menu with its table number already attached, so orders arrive at the correct table.
-
-## Changing restaurant details and menu
-
-Use the staff dashboard:
-
-- **Orders** — view live orders, advance statuses, cancel orders, export CSV
-- **Menu** — add/edit/delete dishes and categories, change prices, mark items sold out
-- **Tables & QR** — copy links, download individual SVG codes, print all codes
-- **Settings** — restaurant name, tagline, currency, table count, footer note
-
-## Project structure
+## 📁 Project Structure
 
 ```text
 qr-restaurant/
-├─ server.js              Express server and JSON API
-├─ package.json
-├─ public/
-│  ├─ index.html          Landing page
-│  ├─ menu.html           Guest menu
-│  ├─ order.html          Order tracking page
-│  ├─ admin.html          Staff dashboard
-│  ├─ css/
-│  │  ├─ base.css         Shared design system
-│  │  ├─ menu.css         Guest menu and tracking styles
-│  │  └─ admin.css        Staff dashboard styles
-│  └─ js/
-│     ├─ menu.js          Menu, cart, and order submission
-│     ├─ order.js         Live order tracking
-│     └─ admin.js         Dashboard, menu management, QR codes
-└─ data/
-   └─ db.json             Created automatically at first start
+├── server.js              # Express REST API, QR generator & state
+├── package.json           # Dependencies (express, qrcode)
+├── README.md              # Documentation & guides
+├── data/
+│   └── db.json            # Auto-seeded local JSON database
+└── public/
+    ├── index.html         # Landing page & quick table simulator
+    ├── menu.html          # Guest ordering menu
+    ├── order.html         # Live order tracking
+    ├── admin.html         # Staff kitchen & management dashboard
+    ├── css/
+    │   ├── base.css       # Design tokens, variables & animations
+    │   ├── menu.css       # Guest menu & cart styles
+    │   └── admin.css      # Staff dashboard styles
+    └── js/
+        ├── menu.js        # Guest cart & order submission
+        ├── order.js       # Live order polling & status stepper
+        └── admin.js       # Live order board, chime & menu CRUD
 ```
 
-## Data storage
+---
 
-All data is stored locally in `data/db.json`.
-
-- Back up that file to keep your data.
-- Delete it to reset the demo (a fresh seeded database is created on the next start).
-- This is suitable for a demo or single small restaurant. For production use, migrate to SQLite or PostgreSQL.
-
-## Important for public demos
-
-A `localhost` or `192.168.x.x` QR code only works on the local network. To share a sample with someone outside your Wi-Fi, you need either:
-
-1. A temporary tunnel (for example Cloudflare Tunnel or ngrok), or
-2. A real deployment with a domain and HTTPS.
-
-Before sharing publicly:
-
-- Change `ADMIN_PIN` from the default `2468`.
-- Do not expose `data/db.json` directly.
-- Use HTTPS so browser clipboard/QR features behave correctly.
-- Keep the server running for as long as the demo link is needed.
-
-## Scripts
-
-```powershell
-npm start       # start the server
-npm run dev     # start with Node's watch mode
-```
+## 📄 License
+MIT © 2026

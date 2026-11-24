@@ -1,189 +1,240 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Menu — Barbeque Nation</title>
-  <meta name="description" content="Browse the menu and order from your table.">
-  <meta name="theme-color" content="#f7f3ea">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/base.css?v=3">
-  <link rel="stylesheet" href="/css/menu.css?v=2">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='28' fill='%231f3d2f'/><text x='50' y='70' font-size='58' font-family='Georgia' text-anchor='middle' fill='%23f7f3ea'>C</text></svg>">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/menu.css">
 </head>
 <body class="menu-page">
-  <header class="site-head">
-    <div class="wrap head-inner">
-      <a class="brand" href="/" aria-label="Back to home">
-        <span class="brand-mark">C</span>
-        <span class="brand-text">
-          <strong id="brandName">Barbeque Nation</strong>
-          <span>Scan · order · enjoy</span>
-        </span>
-      </a>
-      <button class="table-chip" id="tableChip" type="button" aria-label="Choose your table">
-        <span class="table-chip-dot"></span>
-        <span id="tableChipText">Choose table</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-      </button>
+
+  <!-- Header -->
+  <header class="menu-header">
+    <div class="menu-header-inner">
+      <div>
+        <h1 class="brand-title" id="restaurantName">Barbeque Nation</h1>
+        <div class="brand-outlet" id="outletName">Sentrum Mall, Kanyapur, Asansol</div>
+        <div class="brand-tagline" id="tagline">Live grills &amp; buffet</div>
+      </div>
+      <div class="table-badge-card">
+        <span class="table-badge-label">Table</span>
+        <span class="table-badge-num" id="tableNumDisplay">—</span>
+        <button class="table-change-btn" id="changeTableBtn">Change Table</button>
+      </div>
     </div>
   </header>
 
-  <section class="menu-hero">
-    <div class="wrap">
-      <span class="eyebrow"><span class="dot"></span><span id="heroEyebrow">Welcome to the table</span></span>
-      <h1 id="restaurantName">Barbeque Nation</h1>
-      <p class="tagline" id="tagline">Seasonal kitchen &amp; bar</p>
-      <p class="hero-note">
-        Order from your table — we'll bring it over.
-        <span class="separator"></span>
-        <span id="heroMeta">Loading the menu…</span>
-      </p>
-    </div>
-  </section>
+  <!-- Sticky Category Navigation -->
+  <div class="category-nav-wrapper">
+    <nav class="category-nav" id="categoryNav">
+      <!-- Generated via JS -->
+    </nav>
+  </div>
 
-  <div class="menu-tools">
-    <div class="wrap tools-inner">
-      <div class="tools-row">
-        <label class="search-box">
-          <span class="sr-only">Search the menu</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
-          <input id="searchInput" type="search" placeholder="Search dishes, drinks…" autocomplete="off">
-        </label>
-        <span class="dish-count" id="dishCount">Loading…</span>
-      </div>
-      <nav class="chips" id="categoryChips" aria-label="Menu categories"></nav>
+  <!-- Search & Tag Filters -->
+  <div class="filter-bar">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" class="form-input" placeholder="Search dishes, drinks, desserts...">
+    </div>
+    <div class="tag-filters">
+      <button class="tag-btn active" data-tag="all">All</button>
+      <button class="tag-btn" data-tag="Vegetarian">🌱 Veg</button>
+      <button class="tag-btn" data-tag="Non-veg">🍗 Non-veg</button>
+      <button class="tag-btn" data-tag="Bestseller">⭐ Bestseller</button>
     </div>
   </div>
 
-  <main class="wrap menu-main" id="menuMain">
-    <div class="loading-state">
-      <span class="spinner" aria-hidden="true"></span>
-      <p>Setting the table…</p>
-    </div>
+  <!-- Menu Content Sections -->
+  <main class="menu-content" id="menuContent">
+    <div style="text-align:center; padding: 40px; color: var(--muted);">Loading menu...</div>
   </main>
 
-  <footer class="wrap menu-footer">
-    <p id="footerNote">Please let your server know about any allergies.</p>
-    <p>Order sent straight to the kitchen · pay at your table</p>
-  </footer>
+  <!-- Floating Call Waiter Button -->
+  <button class="call-waiter-floating-btn" id="openWaiterModalBtn" aria-label="Call Waiter & Table Service">
+    <span class="waiter-btn-icon">🛎️</span>
+    <span class="waiter-btn-text">Call Waiter</span>
+    <span class="waiter-btn-ping"></span>
+  </button>
 
-  <!-- Floating cart -->
-  <div class="cart-bar" id="cartBar" aria-live="polite">
+  <!-- Floating Cart Bar -->
+  <div class="cart-floating-bar" id="cartFloatingBar">
     <div class="cart-bar-info">
-      <span class="cart-count" id="cartCount">0</span>
-      <div>
-        <strong id="cartBarTitle">0 items</strong>
-        <span id="cartBarTotal">$0.00</span>
-      </div>
+      <span class="cart-bar-count" id="cartBarCount">0 items</span>
+      <span class="cart-bar-total" id="cartBarTotal">₹0.00</span>
     </div>
-    <button class="cart-bar-btn" id="openCartBtn" type="button">
-      Review order
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-    </button>
+    <button class="btn btn-primary" id="openCartBtn">View Cart &rarr;</button>
   </div>
 
-  <div class="backdrop" id="backdrop"></div>
+  <!-- Cart Drawer Overlay -->
+  <div class="cart-drawer-overlay" id="cartDrawerOverlay">
+    <aside class="cart-drawer" id="cartDrawer">
+      <div class="cart-drawer-header">
+        <h2 style="font-family: var(--font-serif); font-size: 20px;">Your Table Order</h2>
+        <button class="modal-close" id="closeCartBtn">&times;</button>
+      </div>
 
-  <!-- Cart drawer -->
-  <aside class="cart-sheet" id="cartSheet" aria-labelledby="cartTitle" aria-hidden="true">
-    <header class="sheet-head">
-      <div>
-        <span class="eyebrow"><span class="dot"></span> Your order</span>
-        <h2 id="cartTitle">At the table</h2>
-      </div>
-      <button class="icon-btn" id="closeCartBtn" type="button" aria-label="Close order">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
-      </button>
-    </header>
-    <div class="sheet-body">
-      <div class="sheet-table-note">
-        <span class="table-dot"></span>
-        Ordering for <strong>Table <span id="sheetTable">—</span></strong>
-      </div>
-      <div class="cart-items" id="cartItems"></div>
-      <div class="cart-empty hidden" id="cartEmpty">
-        <span>🍽️</span>
-        <h3>Your order is empty</h3>
-        <p>Add a few dishes from the menu and they will appear here.</p>
-      </div>
-      <label class="note-field">
-        <span>Notes for the kitchen</span>
-        <textarea id="orderNote" maxlength="300" placeholder="Allergies, no onions, extra sauce…"></textarea>
-      </label>
-    </div>
-    <footer class="sheet-foot">
-      <div class="total-row">
-        <span>Order total</span>
-        <strong id="cartTotal">$0.00</strong>
-      </div>
-      <p class="pay-note">No payment now — settle the bill at your table.</p>
-      <button class="btn btn-primary btn-block" id="placeOrderBtn" type="button" disabled>Send order to the kitchen</button>
-    </footer>
-  </aside>
+      <div class="cart-drawer-body">
+        <div style="margin-bottom: 14px; padding: 10px 14px; background: var(--cream); border-radius: var(--radius-sm); font-size: 13.5px; display: flex; justify-content: space-between;">
+          <span>Ordering for:</span>
+          <strong>Table <span id="cartTableNum">1</span></strong>
+        </div>
 
-  <!-- Table picker -->
-  <div class="modal-overlay" id="tableModal" role="dialog" aria-modal="true" aria-labelledby="tableModalTitle" aria-hidden="true">
-    <div class="modal-card">
-      <div class="table-modal-head">
-        <div class="table-modal-icon" aria-hidden="true">🍽️</div>
-        <div>
-          <span class="eyebrow"><span class="dot"></span> Before you order</span>
-          <h2 id="tableModalTitle">Which table are you at?</h2>
+        <div id="cartItemsList">
+          <!-- Cart items injected here -->
         </div>
-      </div>
-      <p>Scanning the QR code on your table fills this in automatically. For this demo, you can pick a table below.</p>
-      <label class="field">
-        <span>Table number</span>
-        <select id="tableSelect">
-          <option value="">Select your table…</option>
-        </select>
-      </label>
-      <div class="modal-actions">
-        <button class="btn btn-ghost" id="tableModalClose" type="button">Just browsing</button>
-        <button class="btn btn-primary" id="tableConfirmBtn" type="button">Start my order</button>
-      </div>
-    </div>
-  </div>
 
-  <!-- Success -->
-  <div class="modal-overlay" id="successModal" role="dialog" aria-modal="true" aria-labelledby="successTitle" aria-hidden="true">
-    <div class="modal-card success-card">
-      <div class="success-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg>
+        <div class="form-group" style="margin-top: 18px;">
+          <label class="form-label" for="orderNote">Special Kitchen Instructions (Optional)</label>
+          <textarea id="orderNote" class="form-textarea" placeholder="E.g., extra spicy, no onions, allergies..."></textarea>
+        </div>
+
+        <!-- Payment Method Selector -->
+        <div class="checkout-payment-section">
+          <div class="payment-section-title">Select Payment Method</div>
+          <div class="payment-options-grid">
+            <label class="payment-method-card active" id="payMethodUpiCard">
+              <input type="radio" name="paymentMethod" value="upi" checked>
+              <div class="pay-card-content">
+                <div class="pay-card-header">
+                  <span class="pay-icon">⚡</span>
+                  <strong>Instant UPI</strong>
+                </div>
+                <div class="pay-apps-badges">
+                  <span class="app-pill app-phonepe">PhonePe</span>
+                  <span class="app-pill app-gpay">GPay</span>
+                  <span class="app-pill app-paytm">Paytm</span>
+                </div>
+              </div>
+            </label>
+            <label class="payment-method-card" id="payMethodCashCard">
+              <input type="radio" name="paymentMethod" value="cash">
+              <div class="pay-card-content">
+                <div class="pay-card-header">
+                  <span class="pay-icon">💵</span>
+                  <strong>Pay at Counter</strong>
+                </div>
+                <div class="pay-card-subtitle">Cash / Card after meal</div>
+              </div>
+            </label>
+          </div>
+
+          <!-- Dynamic UPI View -->
+          <div class="upi-live-box" id="upiLiveBox">
+            <div class="upi-qr-wrapper">
+              <div id="upiQrSvg" class="upi-qr-placeholder">Generating UPI QR...</div>
+              <div class="upi-scan-note">Scan with PhonePe, GPay, Paytm or BHIM</div>
+            </div>
+            <div class="upi-deep-links">
+              <a href="#" id="upiPayLink" class="btn-upi-app btn-upi-universal">⚡ Open Default UPI App</a>
+              <div class="upi-app-quick-row">
+                <a href="#" id="phonepeLink" class="upi-quick-btn phonepe-color">🟣 PhonePe</a>
+                <a href="#" id="gpayLink" class="upi-quick-btn gpay-color">🔵 Google Pay</a>
+                <a href="#" id="paytmLink" class="upi-quick-btn paytm-color">🟦 Paytm</a>
+              </div>
+            </div>
+            <div class="upi-vpa-row">
+              <span class="upi-vpa-label">UPI ID:</span>
+              <strong id="displayUpiVpa">barbequenation@okaxis</strong>
+              <button type="button" class="btn-copy-vpa" id="copyVpaBtn">Copy</button>
+            </div>
+          </div>
+        </div>
+
       </div>
-      <span class="eyebrow"><span class="dot"></span> Order sent</span>
-      <h2 id="successTitle">The kitchen has it.</h2>
-      <p>We've sent your order to the kitchen. You can follow its progress live from your phone.</p>
-      <div class="success-receipt">
-        <div>
-          <span>Order</span>
-          <strong id="successCode">#—</strong>
+
+      <div class="cart-drawer-footer">
+        <div class="bill-row">
+          <span>Subtotal</span>
+          <span id="cartSubtotal">₹0.00</span>
         </div>
-        <div style="text-align:right">
-          <span>Table</span>
-          <strong id="successTable">—</strong>
-        </div>
-        <div style="text-align:right">
+        <div class="bill-row total">
           <span>Total</span>
-          <strong id="successTotal">—</strong>
+          <span id="cartTotal">₹0.00</span>
         </div>
+        <button class="btn btn-primary btn-lg" id="submitOrderBtn" style="width: 100%; margin-top: 14px;">
+          Send Order to Kitchen
+        </button>
       </div>
-      <div class="success-actions">
-        <a class="btn btn-primary" id="successTrackLink" href="#">Track my order</a>
-        <button class="btn btn-ghost" id="successDoneBtn" type="button">Back to the menu</button>
+    </aside>
+  </div>
+
+  <!-- Call Waiter Modal -->
+  <div class="modal-overlay" id="waiterModal">
+    <div class="modal-card waiter-modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">🛎️ Call Waiter &amp; Table Service</h3>
+          <p style="font-size: 13px; color: var(--muted); margin: 3px 0 0;">Table <strong id="waiterTableNum">1</strong> assistance</p>
+        </div>
+        <button class="modal-close" id="closeWaiterModal">&times;</button>
       </div>
-      <p class="success-hint">Keep this page open or bookmark the tracking link.</p>
+
+      <p style="font-size: 13.5px; color: var(--muted); margin-bottom: 12px;">Tap what you need and a team member will assist you right away:</p>
+
+      <div class="waiter-options-grid">
+        <button type="button" class="waiter-opt-btn active" data-type="water">
+          <span class="opt-icon">💧</span>
+          <span class="opt-label">Water / Refill</span>
+        </button>
+        <button type="button" class="waiter-opt-btn" data-type="cutlery">
+          <span class="opt-icon">🍴</span>
+          <span class="opt-label">Extra Cutlery</span>
+        </button>
+        <button type="button" class="waiter-opt-btn" data-type="bill">
+          <span class="opt-icon">🧾</span>
+          <span class="opt-label">Request Bill</span>
+        </button>
+        <button type="button" class="waiter-opt-btn" data-type="waiter">
+          <span class="opt-icon">🙋</span>
+          <span class="opt-label">Call Server</span>
+        </button>
+        <button type="button" class="waiter-opt-btn" data-type="clean">
+          <span class="opt-icon">🧹</span>
+          <span class="opt-label">Clean Table</span>
+        </button>
+        <button type="button" class="waiter-opt-btn" data-type="other">
+          <span class="opt-icon">💬</span>
+          <span class="opt-label">Other Note</span>
+        </button>
+      </div>
+
+      <div class="form-group" style="margin-top: 14px;">
+        <label class="form-label" for="waiterNote">Specific Note (Optional)</label>
+        <input type="text" id="waiterNote" class="form-input" placeholder="E.g., warm drinking water, 2 extra forks...">
+      </div>
+
+      <div id="waiterActiveStatus" class="waiter-status-box" style="display: none;"></div>
+
+      <button type="button" class="btn btn-primary btn-lg" id="submitWaiterBtn" style="width: 100%; margin-top: 14px;">
+        🔔 Notify Staff Now
+      </button>
     </div>
   </div>
 
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <!-- Change Table Modal -->
+  <div class="modal-overlay" id="tableModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Select Your Table</h3>
+        <button class="modal-close" id="closeTableModal">&times;</button>
+      </div>
+      <p style="font-size: 14px; color: var(--muted); margin-bottom: 16px;">
+        Look for the number card on your table stand:
+      </p>
+      <div class="form-group">
+        <select id="tableSelect" class="form-select" style="font-size: 16px; padding: 12px;">
+          <!-- Options populated via JS -->
+        </select>
+      </div>
+      <button class="btn btn-primary" id="saveTableBtn" style="width: 100%; margin-top: 10px;">
+        Confirm Table
+      </button>
+    </div>
+  </div>
 
-  <noscript>
-    <div style="padding:24px;text-align:center">Please enable JavaScript to browse the menu and order.</div>
-  </noscript>
+  <div class="toast-container" id="toastContainer"></div>
 
   <script src="/js/menu.js"></script>
 </body>
