@@ -23,12 +23,16 @@
       if (qrEl) qrEl.innerHTML = data.svg;
       const deepLink = document.getElementById('orderUpiDeepLink');
       if (deepLink) deepLink.href = data.upiUri;
+
+      // Smart mobile app routing: Android Chrome supports direct package intents
+      const isAndroid = /Android/i.test(navigator.userAgent);
       const ph = document.getElementById('orderPhonepeLink');
-      if (ph) ph.href = data.upiUri;
+      if (ph) ph.href = (isAndroid && data.phonepeIntent) ? data.phonepeIntent : data.upiUri;
       const gp = document.getElementById('orderGpayLink');
-      if (gp) gp.href = data.upiUri;
+      if (gp) gp.href = (isAndroid && data.gpayIntent) ? data.gpayIntent : data.upiUri;
       const pt = document.getElementById('orderPaytmLink');
-      if (pt) pt.href = data.upiUri;
+      if (pt) pt.href = (isAndroid && data.paytmIntent) ? data.paytmIntent : data.upiUri;
+
       const vpa = document.getElementById('orderVpaText');
       if (vpa) vpa.textContent = data.vpa || 'barbequenation@okaxis';
     } catch (e) {
@@ -219,10 +223,14 @@
                 </div>
               </div>
 
-              <div class="upi-vpa-row" style="margin-bottom: 14px;">
+              <div class="upi-vpa-row" style="margin-bottom: 6px;">
                 <span>UPI ID:</span>
                 <strong id="orderVpaText">${escapeHtml((restaurant && restaurant.upiVpa) || 'barbequenation@okaxis')}</strong>
                 <button type="button" class="btn-copy-vpa" id="orderCopyVpaBtn">Copy</button>
+              </div>
+
+              <div style="font-size: 11.5px; color: var(--muted); margin: 0 0 14px; text-align: center; line-height: 1.4;">
+                💡 <em>Make sure your registered UPI ID is saved in Admin Settings so PhonePe/GPay can route to your bank.</em>
               </div>
 
               <button type="button" class="btn btn-outline btn-sm" id="confirmUpiPaidBtn" style="width: 100%; border-color: var(--green); color: var(--green); font-weight: 700; padding: 10px;">

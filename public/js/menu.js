@@ -92,10 +92,6 @@
         outletNameEl.textContent = menuData.restaurant.outletName || '';
         taglineEl.textContent = menuData.restaurant.tagline || '';
         document.title = `${menuData.restaurant.name} — Menu`;
-        if (menuData.restaurant.upiVpa) {
-          cachedUpiVpa = menuData.restaurant.upiVpa;
-          if (displayUpiVpa) displayUpiVpa.textContent = cachedUpiVpa;
-        }
       }
 
       // Populate Table Selector Options

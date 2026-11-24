@@ -310,12 +310,30 @@ app.get('/api/upi-qr', async (req, res, next) => {
   try {
     const amount = Number(req.query.amount) || 0;
     const table = Math.max(1, parseInt(req.query.table, 10) || 1);
-    const orderCode = req.query.code || '';
-    const vpa = db.settings.upiVpa || 'barbequenation@okaxis';
-    const payee = db.settings.upiPayeeName || db.settings.restaurantName;
-    const note = `Table ${table}${orderCode ? ' Order #' + orderCode : ''}`;
+    const rawCode = String(req.query.code || '').replace(/[^a-zA-Z0-9]/g, '');
+    const vpa = (db.settings.upiVpa || 'barbequenation@okaxis').trim();
+    const rawPayee = db.settings.upiPayeeName || db.settings.restaurantName || 'Restaurant';
+    // Strictly alphanumeric & spaces for NPCI guidelines (max 40 chars)
+    const payee = String(rawPayee).replace(/[^a-zA-Z0-9 ]/g, '').trim().slice(0, 40) || 'Restaurant';
+    // Clean note: NPCI forbids '#' or special characters in tn parameter
+    const note = `Table ${table}${rawCode ? ' Order ' + rawCode : ' Bill'}`.replace(/[^a-zA-Z0-9 ]/g, '').trim().slice(0, 40);
     const amountStr = amount > 0 ? money(amount).toFixed(2) : '';
-    const upiUri = `upi://pay?pa=${encodeURIComponent(vpa)}&pn=${encodeURIComponent(payee)}${amountStr ? '&am=' + amountStr : ''}&cu=INR&tn=${encodeURIComponent(note)}`;
+
+    // Standard Universal UPI URI (RFC compliant)
+    const upiParams = new URLSearchParams();
+    upiParams.set('pa', vpa);
+    upiParams.set('pn', payee);
+    if (amountStr) upiParams.set('am', amountStr);
+    upiParams.set('cu', 'INR');
+    upiParams.set('tn', note);
+
+    const upiUri = `upi://pay?${upiParams.toString()}`;
+
+    // App-specific Android intents for direct opening without chooser hurdles
+    const phonepeIntent = `intent://pay?${upiParams.toString()}#Intent;scheme=upi;package=com.phonepe.app;end`;
+    const gpayIntent = `intent://pay?${upiParams.toString()}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`;
+    const paytmIntent = `intent://pay?${upiParams.toString()}#Intent;scheme=upi;package=net.one97.paytm;end`;
+
     const svg = await QRCode.toString(upiUri, {
       type: 'svg',
       margin: 2,
@@ -323,7 +341,17 @@ app.get('/api/upi-qr', async (req, res, next) => {
       errorCorrectionLevel: 'M',
       color: { dark: '#000000', light: '#ffffff' },
     });
-    res.json({ upiUri, svg, vpa, payee, amount: money(amount), note });
+    res.json({
+      upiUri,
+      phonepeIntent,
+      gpayIntent,
+      paytmIntent,
+      svg,
+      vpa,
+      payee,
+      amount: money(amount),
+      note
+    });
   } catch (err) {
     next(err);
   }
