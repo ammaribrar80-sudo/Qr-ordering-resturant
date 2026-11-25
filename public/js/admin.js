@@ -107,7 +107,6 @@
   const chimeToggleBtn = document.getElementById('chimeToggleBtn');
   const chimeIcon = document.getElementById('chimeIcon');
   const chimeLabel = document.getElementById('chimeLabel');
-  const navResName = document.getElementById('navResName');
   const newOrdersCount = document.getElementById('newOrdersCount');
   const requestsCount = document.getElementById('requestsCount');
   const serviceAlertsBar = document.getElementById('serviceAlertsBar');
@@ -600,6 +599,7 @@
   const itemPriceInput = document.getElementById('itemPrice');
   const itemEmojiInput = document.getElementById('itemEmoji');
   const itemTagInput = document.getElementById('itemTag');
+  const itemDietaryInput = document.getElementById('itemDietary');
   const itemDescInput = document.getElementById('itemDesc');
   const itemAvailableInput = document.getElementById('itemAvailable');
 
@@ -671,6 +671,7 @@
                 <div style="font-weight: 700; font-size: 15px; color: var(--ink);">
                   ${escapeHtml(item.name)}
                   ${item.tag ? `<span class="badge" style="margin-left: 6px; font-size: 10px;">${escapeHtml(item.tag)}</span>` : ''}
+                  ${item.dietary && item.dietary.toLowerCase() !== (item.tag || '').toLowerCase() ? `<span class="badge" style="margin-left: 6px; font-size: 10px;">${escapeHtml(item.dietary)}</span>` : ''}
                 </div>
                 <div style="font-size: 13px; color: var(--muted);">${escapeHtml(item.description || 'No description')}</div>
               </div>
@@ -732,6 +733,7 @@
     itemPriceInput.value = item.price;
     itemEmojiInput.value = item.emoji || '';
     itemTagInput.value = item.tag || '';
+    itemDietaryInput.value = item.dietary || '';
     itemDescInput.value = item.description || '';
     itemAvailableInput.checked = Boolean(item.available);
     itemModal.classList.add('active');
@@ -748,6 +750,7 @@
       price: parseFloat(itemPriceInput.value),
       emoji: itemEmojiInput.value.trim() || '🍽️',
       tag: itemTagInput.value.trim(),
+      dietary: itemDietaryInput.value,
       description: itemDescInput.value.trim(),
       available: itemAvailableInput.checked
     };
@@ -924,7 +927,6 @@
       if (settingUpiPayeeName) settingUpiPayeeName.value = s.upiPayeeName || s.restaurantName || '';
       settingFooterNote.value = s.footerNote || '';
 
-      if (navResName) navResName.textContent = s.restaurantName || 'Barbeque Nation';
       document.title = `${s.restaurantName} — Staff Dashboard`;
     } catch (err) {
       console.error(err);
@@ -954,7 +956,6 @@
       if (!res.ok) throw new Error(data.error || 'Failed to save settings.');
 
       showToast('Settings saved successfully!', 'success');
-      if (navResName) navResName.textContent = data.settings.restaurantName;
     } catch (err) {
       showToast(err.message, 'error');
     }

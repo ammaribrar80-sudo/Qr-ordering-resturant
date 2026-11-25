@@ -41,24 +41,11 @@
     </div>
   </header>
 
-  <!-- Sticky Category Navigation -->
-  <div class="category-nav-wrapper">
-    <nav class="category-nav" id="categoryNav">
-      <!-- Generated via JS -->
-    </nav>
-  </div>
-
-  <!-- Search & Tag Filters -->
+  <!-- Menu Search -->
   <div class="filter-bar">
     <div class="search-box">
       <span class="search-icon">🔍</span>
       <input type="text" id="searchInput" class="form-input" placeholder="Search dishes, grills, desserts...">
-    </div>
-    <div class="tag-filters">
-      <button class="tag-btn active" data-tag="all">All</button>
-      <button class="tag-btn" data-tag="Vegetarian">🌱 Veg</button>
-      <button class="tag-btn" data-tag="Non-veg">🍗 Non-veg</button>
-      <button class="tag-btn" data-tag="Bestseller">⭐ Bestseller</button>
     </div>
   </div>
 
@@ -66,6 +53,32 @@
   <main class="menu-content" id="menuContent">
     <div style="text-align:center; padding: 40px; color: var(--muted);">Loading menu...</div>
   </main>
+
+  <!-- Dish Details -->
+  <div class="modal-overlay dish-dialog-overlay" id="dishDialogOverlay" aria-hidden="true">
+    <section class="modal-card dish-dialog-card" role="dialog" aria-modal="true" aria-labelledby="dishDialogName" tabindex="-1">
+      <div class="dish-dialog-header">
+        <div>
+          <p class="dish-dialog-category" id="dishDialogCategory"></p>
+          <h2 class="modal-title" id="dishDialogName"></h2>
+        </div>
+        <button type="button" class="modal-close" id="dishDialogClose" aria-label="Close dish details">&times;</button>
+      </div>
+      <div class="dish-dialog-content">
+        <div class="dish-dialog-plate" id="dishDialogPlate" aria-hidden="true"></div>
+        <div class="dish-dialog-info">
+          <p class="dish-dialog-description" id="dishDialogDescription"></p>
+          <div class="dish-dialog-details" id="dishDialogDetails"></div>
+          <div class="dish-dialog-actions">
+            <button type="button" class="btn btn-outline btn-sm" id="dishDialogPrevious">← Previous</button>
+            <strong class="dish-dialog-price" id="dishDialogPrice"></strong>
+            <button type="button" class="btn btn-outline btn-sm" id="dishDialogNext">Next →</button>
+          </div>
+          <button type="button" class="btn btn-primary btn-lg dish-dialog-add" id="dishDialogAdd">＋ Add to order</button>
+        </div>
+      </div>
+    </section>
+  </div>
 
   <!-- Floating Call Waiter Button -->
   <button class="call-waiter-floating-btn" id="openWaiterModalBtn" aria-label="Call Waiter & Table Service">

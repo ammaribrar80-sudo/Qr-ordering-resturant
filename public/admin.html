@@ -12,19 +12,20 @@
   <!-- Top Header -->
   <header class="admin-header">
     <div class="admin-header-title">
-      <span>🔥</span>
-      <span id="navResName">Barbeque Nation</span>
-      <span style="font-size: 13px; font-weight: normal; opacity: 0.75; font-family: var(--font-sans);">Kitchen &amp; Operations</span>
+      <a class="admin-brand" href="/" aria-label="Barbeque Nation home">
+        <img src="/images/bbq-logo.svg" alt="Barbeque Nation" class="admin-brand-logo">
+      </a>
+      <span class="admin-header-context">Kitchen &amp; Operations</span>
     </div>
     <div class="admin-header-actions">
-      <button class="btn btn-outline btn-sm" id="testSoundBtn" style="color: #fff; border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.08);">
+      <button class="btn btn-outline btn-sm admin-header-button" id="testSoundBtn">
         🔊 Test Bell
       </button>
       <button class="chime-toggle" id="chimeToggleBtn">
         <span id="chimeIcon">🔔</span>
         <span id="chimeLabel">Sound Alert: ON</span>
       </button>
-      <button class="btn btn-outline btn-sm" id="logoutBtn" style="color: #fff; border-color: rgba(255,255,255,0.3); background: transparent;">
+      <button class="btn btn-outline btn-sm admin-header-button" id="logoutBtn">
         Sign Out
       </button>
     </div>
@@ -219,6 +220,14 @@
         <div class="form-group">
           <label class="form-label" for="itemTag">Tag (e.g. Vegetarian, Non-veg, Bestseller)</label>
           <input type="text" id="itemTag" class="form-input" placeholder="Vegetarian">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="itemDietary">Dietary classification</label>
+          <select id="itemDietary" class="form-select">
+            <option value="">Not specified</option>
+            <option value="Vegetarian">Vegetarian</option>
+            <option value="Non-veg">Non-veg</option>
+          </select>
         </div>
         <div class="form-group">
           <label class="form-label" for="itemDesc">Description</label>
