@@ -46,26 +46,26 @@ function seedData() {
       { id: 'drinks', name: 'Drinks', sort: 5 },
     ],
     items: [
-      { id: 'paneer-tikka', categoryId: 'grills', name: 'Paneer Tikka', description: 'Charred cottage cheese, peppers and mint chutney.', price: 325, emoji: '🍢', tag: 'Vegetarian', available: true, sort: 1 },
-      { id: 'tandoori-mushroom', categoryId: 'grills', name: 'Tandoori Mushroom', description: 'Smoky mushrooms with a yoghurt and spice marinade.', price: 295, emoji: '🍄', tag: 'Vegetarian', available: true, sort: 2 },
-      { id: 'chicken-malai-tikka', categoryId: 'grills', name: 'Chicken Malai Tikka', description: 'Creamy chicken skewers finished over live coals.', price: 375, emoji: '🍗', tag: 'Bestseller', available: true, sort: 3 },
-      { id: 'mutton-seekh', categoryId: 'grills', name: 'Mutton Seekh Kebab', description: 'Minced mutton kebabs with warm spices.', price: 425, emoji: '🍖', tag: 'Non-veg', available: true, sort: 4 },
-      { id: 'grilled-pineapple', categoryId: 'grills', name: 'Grilled Pineapple', description: 'Caramelised pineapple with chaat masala.', price: 225, emoji: '🍍', tag: 'Vegetarian', available: true, sort: 5 },
+      { id: 'paneer-tikka', categoryId: 'grills', name: 'Paneer Tikka', description: 'Charred cottage cheese, peppers and mint chutney.', price: 325, emoji: '🍢', tag: 'Vegetarian', dietary: 'Vegetarian', available: true, sort: 1 },
+      { id: 'tandoori-mushroom', categoryId: 'grills', name: 'Tandoori Mushroom', description: 'Smoky mushrooms with a yoghurt and spice marinade.', price: 295, emoji: '🍄', tag: 'Vegetarian', dietary: 'Vegetarian', available: true, sort: 2 },
+      { id: 'chicken-malai-tikka', categoryId: 'grills', name: 'Chicken Malai Tikka', description: 'Creamy chicken skewers finished over live coals.', price: 375, emoji: '🍗', tag: 'Bestseller', dietary: 'Non-veg', available: true, sort: 3 },
+      { id: 'mutton-seekh', categoryId: 'grills', name: 'Mutton Seekh Kebab', description: 'Minced mutton kebabs with warm spices.', price: 425, emoji: '🍖', tag: 'Non-veg', dietary: 'Non-veg', available: true, sort: 4 },
+      { id: 'grilled-pineapple', categoryId: 'grills', name: 'Grilled Pineapple', description: 'Caramelised pineapple with chaat masala.', price: 225, emoji: '🍍', tag: 'Vegetarian', dietary: 'Vegetarian', available: true, sort: 5 },
 
-      { id: 'butter-chicken', categoryId: 'curries', name: 'Butter Chicken', description: 'Tender chicken in a silky tomato and butter gravy.', price: 395, emoji: '🍛', tag: 'Bestseller', available: true, sort: 1 },
-      { id: 'dal-makhani', categoryId: 'curries', name: 'Dal Makhani', description: 'Black lentils simmered overnight with butter.', price: 265, emoji: '🥘', tag: 'Vegetarian', available: true, sort: 2 },
-      { id: 'paneer-butter-masala', categoryId: 'curries', name: 'Paneer Butter Masala', description: 'Cottage cheese in a rich, mildly sweet tomato gravy.', price: 325, emoji: '🧀', tag: 'Vegetarian', available: true, sort: 3 },
-      { id: 'veg-biryani', categoryId: 'curries', name: 'Veg Biryani', description: 'Fragrant rice with vegetables and warm spices.', price: 295, emoji: '🍚', tag: 'Vegetarian', available: true, sort: 4 },
+      { id: 'butter-chicken', categoryId: 'curries', name: 'Butter Chicken', description: 'Tender chicken in a silky tomato and butter gravy.', price: 395, emoji: '🍛', tag: 'Bestseller', dietary: 'Non-veg', available: true, sort: 1 },
+      { id: 'dal-makhani', categoryId: 'curries', name: 'Dal Makhani', description: 'Black lentils simmered overnight with butter.', price: 265, emoji: '🥘', tag: 'Vegetarian', dietary: 'Vegetarian', available: true, sort: 2 },
+      { id: 'paneer-butter-masala', categoryId: 'curries', name: 'Paneer Butter Masala', description: 'Cottage cheese in a rich, mildly sweet tomato gravy.', price: 325, emoji: '🧀', tag: 'Vegetarian', dietary: 'Vegetarian', available: true, sort: 3 },
+      { id: 'veg-biryani', categoryId: 'curries', name: 'Veg Biryani', description: 'Fragrant rice with vegetables and warm spices.', price: 295, emoji: '🍚', tag: 'Vegetarian', dietary: 'Vegetarian', available: true, sort: 4 },
 
-      { id: 'butter-naan', categoryId: 'breads', name: 'Butter Naan', description: 'Soft tandoor bread brushed with butter.', price: 65, emoji: '🫓', tag: 'Vegetarian', available: true, sort: 1 },
-      { id: 'laccha-paratha', categoryId: 'breads', name: 'Laccha Paratha', description: 'Layered whole-wheat flatbread.', price: 70, emoji: '🫓', tag: 'Vegetarian', available: true, sort: 2 },
-      { id: 'jeera-rice', categoryId: 'breads', name: 'Jeera Rice', description: 'Basmati rice tossed with roasted cumin.', price: 195, emoji: '🍚', tag: 'Vegetarian', available: true, sort: 3 },
+      { id: 'butter-naan', categoryId: 'breads', name: 'Butter Naan', description: 'Soft tandoor bread brushed with butter.', price: 65, emoji: '🫓', tag: 'Vegetarian', dietary: 'Vegetarian', available: true, sort: 1 },
+      { id: 'laccha-paratha', categoryId: 'breads', name: 'Laccha Paratha', description: 'Layered whole-wheat flatbread.', price: 70, emoji: '🫓', tag: 'Vegetarian', dietary: 'Vegetarian', available: true, sort: 2 },
+      { id: 'jeera-rice', categoryId: 'breads', name: 'Jeera Rice', description: 'Basmati rice tossed with roasted cumin.', price: 195, emoji: '🍚', tag: 'Vegetarian', dietary: 'Vegetarian', available: true, sort: 3 },
 
-      { id: 'gulab-jamun', categoryId: 'desserts', name: 'Gulab Jamun', description: 'Warm milk dumplings in cardamom syrup.', price: 145, emoji: '🍮', tag: 'Vegetarian', available: true, sort: 1 },
-      { id: 'sizzling-brownie', categoryId: 'desserts', name: 'Sizzling Brownie', description: 'Chocolate brownie with vanilla ice cream.', price: 225, emoji: '🍫', tag: 'Bestseller', available: true, sort: 2 },
+      { id: 'gulab-jamun', categoryId: 'desserts', name: 'Gulab Jamun', description: 'Warm milk dumplings in cardamom syrup.', price: 145, emoji: '🍮', tag: 'Vegetarian', dietary: 'Vegetarian', available: true, sort: 1 },
+      { id: 'sizzling-brownie', categoryId: 'desserts', name: 'Sizzling Brownie', description: 'Chocolate brownie with vanilla ice cream.', price: 225, emoji: '🍫', tag: 'Bestseller', dietary: 'Vegetarian', available: true, sort: 2 },
 
-      { id: 'masala-lemonade', categoryId: 'drinks', name: 'Masala Lemonade', description: 'Fresh lime, soda and a pinch of chaat masala.', price: 145, emoji: '🥤', tag: 'Vegetarian', available: true, sort: 1 },
-      { id: 'sweet-lassi', categoryId: 'drinks', name: 'Sweet Lassi', description: 'Chilled yoghurt drink with a touch of cardamom.', price: 155, emoji: '🥛', tag: 'Vegetarian', available: true, sort: 2 },
+      { id: 'masala-lemonade', categoryId: 'drinks', name: 'Masala Lemonade', description: 'Fresh lime, soda and a pinch of chaat masala.', price: 145, emoji: '🥤', tag: 'Vegetarian', dietary: 'Vegetarian', available: true, sort: 1 },
+      { id: 'sweet-lassi', categoryId: 'drinks', name: 'Sweet Lassi', description: 'Chilled yoghurt drink with a touch of cardamom.', price: 155, emoji: '🥛', tag: 'Vegetarian', dietary: 'Vegetarian', available: true, sort: 2 },
     ],
     orders: [],
     serviceRequests: [],
@@ -85,12 +85,18 @@ function loadDb() {
   }
   try {
     const parsed = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    const seededItemsById = new Map(seedData().items.map((item) => [item.id, item]));
     return {
       ...seedData(),
       ...parsed,
       settings: { ...DEFAULT_SETTINGS, ...(parsed.settings || {}) },
       categories: Array.isArray(parsed.categories) ? parsed.categories : [],
-      items: Array.isArray(parsed.items) ? parsed.items : [],
+      items: Array.isArray(parsed.items) ? parsed.items.map((item) => ({
+        ...item,
+        dietary: typeof item.dietary === 'string'
+          ? item.dietary
+          : (seededItemsById.get(item.id) || {}).dietary || inferDietaryFromTag(item.tag),
+      })) : [],
       orders: Array.isArray(parsed.orders) ? parsed.orders : [],
       serviceRequests: Array.isArray(parsed.serviceRequests) ? parsed.serviceRequests : [],
     };
@@ -477,6 +483,16 @@ app.post('/api/orders/:id/pay', (req, res, next) => {
     const order = db.orders.find((entry) => entry.id === req.params.id);
     if (!order) throw new HttpError(404, 'Order not found.');
     const method = req.body && req.body.method;
+    if (!['upi', 'cash'].includes(method)) throw new HttpError(400, 'Invalid payment method.');
+    if (order.paymentStatus === 'paid') {
+      throw new HttpError(409, 'This order has already been paid.');
+    }
+    if (order.paymentStatus === 'pending_verification') {
+      if (method === 'upi' && order.paymentMethod === 'upi') {
+        return res.json({ order: publicOrder(order) });
+      }
+      throw new HttpError(409, 'A payment request for this order is already awaiting staff verification.');
+    }
     const now = new Date().toISOString();
 
     if (method === 'upi') {
@@ -509,8 +525,6 @@ app.post('/api/orders/:id/pay', (req, res, next) => {
         resolvedAt: null,
       });
       saveDb();
-    } else {
-      throw new HttpError(400, 'Invalid payment method.');
     }
 
     res.json({ order: publicOrder(order) });
@@ -737,6 +751,7 @@ function readItemBody(body, existing) {
     price: 0,
     emoji: '🍽️',
     tag: '',
+    dietary: '',
     available: true,
     sort: db.items.length + 1,
     categoryId: db.categories[0] && db.categories[0].id,
@@ -759,10 +774,24 @@ function readItemBody(body, existing) {
     item.emoji = emoji || '🍽️';
   }
   if (!existing || body.tag !== undefined) item.tag = asString(body.tag, 'Tag', { max: 30, required: false });
+  if (!existing || body.dietary !== undefined) {
+    const dietary = asString(body.dietary, 'Dietary classification', { max: 20, required: false });
+    if (dietary && dietary !== 'Vegetarian' && dietary !== 'Non-veg') {
+      throw new HttpError(400, 'Please choose a valid dietary classification.');
+    }
+    item.dietary = dietary || inferDietaryFromTag(item.tag);
+  }
   if (body.available !== undefined) item.available = Boolean(body.available);
   if (body.sort !== undefined) {
     const sort = Number(body.sort);
     if (Number.isFinite(sort)) item.sort = sort;
+  }
+
+  function inferDietaryFromTag(tag) {
+    const normalizedTag = String(tag || '').trim().toLowerCase();
+    if (normalizedTag === 'vegetarian') return 'Vegetarian';
+    if (normalizedTag === 'non-veg') return 'Non-veg';
+    return '';
   }
   return item;
 }
