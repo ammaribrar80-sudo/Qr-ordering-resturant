@@ -8,6 +8,8 @@
   let menuCategories = [];
   let menuItems = [];
   let knownOrderIds = new Set();
+  let ordersInitialized = false;   // true after first successful fetch seeds the known set
+  let requestsInitialized = false; // true after first successful fetch seeds the known set
   let pollTimer = null;
   let audioEnabled = true;
 
@@ -32,6 +34,20 @@
   ['click', 'touchstart', 'keydown'].forEach(evt => {
     document.addEventListener(evt, () => unlockAudio(), { once: true, passive: true });
   });
+
+  // Vibrate the device (mobile-friendly) — pattern: 200ms on, 100ms off, 200ms on
+  function vibrateDevice() {
+    try {
+      if (navigator.vibrate) {
+        navigator.vibrate([200, 100, 200]);
+      }
+    } catch (e) { /* vibration not supported */ }
+  }
+
+  function notifyNewAlert() {
+    playKitchenChime();
+    vibrateDevice();
+  }
 
   function playKitchenChime() {
     if (!audioEnabled) return;
@@ -177,7 +193,7 @@
       chimeIcon.textContent = '🔔';
       chimeLabel.textContent = 'Sound Alert: ON';
       chimeToggleBtn.classList.remove('muted');
-      playKitchenChime();
+      notifyNewAlert();
     } else {
       chimeIcon.textContent = '🔕';
       chimeLabel.textContent = 'Sound Alert: OFF';
@@ -267,7 +283,9 @@
       const newOrders = data.orders || [];
 
       // Check for incoming new orders to sound the bell chime
-      if (isPolling && knownOrderIds.size > 0) {
+      // ordersInitialized: skip ringing on the very first fetch (seeding phase),
+      // but ring for ANY new order on every subsequent poll — including the first order ever.
+      if (isPolling && ordersInitialized) {
         let hasNewIncoming = false;
         for (const order of newOrders) {
           if (!knownOrderIds.has(order.id) && order.status === 'new') {
@@ -276,12 +294,13 @@
           }
         }
         if (hasNewIncoming) {
-          playKitchenChime();
+          notifyNewAlert();
           showToast('🔔 New table order received!', 'success');
         }
       }
 
       knownOrderIds = new Set(newOrders.map(o => o.id));
+      ordersInitialized = true;
       ordersList = newOrders;
 
       // Update badge counter
@@ -421,7 +440,7 @@
       const data = await res.json();
       const requests = data.serviceRequests || [];
 
-      if (isPolling && knownRequestIds.size > 0) {
+      if (isPolling && requestsInitialized) {
         let hasNewPending = false;
         for (const req of requests) {
           if (!knownRequestIds.has(req.id) && req.status === 'pending') {
@@ -430,12 +449,13 @@
           }
         }
         if (hasNewPending) {
-          playKitchenChime();
+          notifyNewAlert();
           showToast('🛎️ New table service request!', 'info');
         }
       }
 
       knownRequestIds = new Set(requests.map(r => r.id));
+      requestsInitialized = true;
       serviceRequestsList = requests;
 
       const pendingCount = requests.filter(r => r.status === 'pending').length;
