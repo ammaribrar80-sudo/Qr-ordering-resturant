@@ -513,53 +513,6 @@
       color: #fff;
     }
 
-    /* Payments Strip */
-    .payments-strip {
-      max-width: 960px;
-      margin: 0 auto 60px;
-      padding: 24px 30px;
-      background: #f8fafc;
-      border: 1.5px solid #e2e8f0;
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-      flex-wrap: wrap;
-    }
-    .payments-info {
-      text-align: left;
-    }
-    .payments-title {
-      font-size: 16px;
-      font-weight: 700;
-      color: #111827;
-      margin-bottom: 4px;
-    }
-    .payments-sub {
-      font-size: 13.5px;
-      color: #64748b;
-    }
-    .payment-logos-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .payment-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: var(--radius-pill);
-      font-size: 13px;
-      font-weight: 600;
-      color: #1e293b;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-    }
-
     footer.landing-footer {
       border-top: 1px solid #f1f5f9;
       background: #ffffff;
@@ -723,32 +676,6 @@
     </div>
   </section>
 
-  <!-- Seamless UPI & Payments Strip -->
-  <section style="padding: 0 20px;">
-    <div class="payments-strip">
-      <div class="payments-info">
-        <div class="payments-title">⚡ Order First, Pay Later When Done</div>
-        <div class="payments-sub">Instant UPI payment right from your phone or cash bill delivered to your table.</div>
-      </div>
-      <div class="payment-logos-row">
-        <div class="payment-badge">
-          <img src="/images/phonepe-logo.svg" width="22" height="22" alt="PhonePe">
-          <span>PhonePe</span>
-        </div>
-        <div class="payment-badge">
-          <img src="/images/gpay-logo.svg" width="22" height="22" alt="Google Pay">
-          <span>Google Pay</span>
-        </div>
-        <div class="payment-badge">
-          <img src="/images/paytm-logo.svg" width="46" height="15" alt="Paytm">
-        </div>
-        <div class="payment-badge">
-          <span>💵 Cash at Table</span>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- QR Code Modal -->
   <div class="modal-overlay" id="qrModal">
     <div class="modal-card" style="text-align: center; max-width: 420px; border: 1.5px solid rgba(255, 99, 1, 0.35);">
@@ -775,101 +702,6 @@
     <p style="font-size: 12px; color: #64748b;">Interactive QR Table Ordering &amp; Live Kitchen Management Demo</p>
   </footer>
 
-  <script>
-    const qrModal = document.getElementById('qrModal');
-    const closeQrModal = document.getElementById('closeQrModal');
-    const qrModalTitle = document.getElementById('qrModalTitle');
-    const qrModalSvg = document.getElementById('qrModalSvg');
-    const qrModalUrl = document.getElementById('qrModalUrl');
-    const openModalUrlBtn = document.getElementById('openModalUrlBtn');
-    const copyModalUrlBtn = document.getElementById('copyModalUrlBtn');
-    let currentModalLink = '';
-
-    function showQrForTable(tableNum) {
-      qrModalTitle.textContent = `Table ${tableNum} QR Code`;
-      qrModalSvg.innerHTML = '<span style="color: #666;">Generating QR...</span>';
-      qrModalUrl.textContent = '';
-      qrModal.classList.add('active');
-
-      fetch(`/api/qr?table=${tableNum}&json=1`)
-        .then(res => res.json())
-        .then(data => {
-          qrModalSvg.innerHTML = data.svg;
-          qrModalUrl.textContent = data.url;
-          currentModalLink = data.url;
-          openModalUrlBtn.href = data.url;
-        })
-        .catch(err => {
-          qrModalSvg.innerHTML = `<span style="color: #ef4444;">Failed to load QR code.</span>`;
-        });
-    }
-
-    closeQrModal.addEventListener('click', () => qrModal.classList.remove('active'));
-    qrModal.addEventListener('click', (e) => {
-      if (e.target === qrModal) qrModal.classList.remove('active');
-    });
-
-    document.getElementById('heroScanBtn').addEventListener('click', () => {
-      showQrForTable(1);
-    });
-
-    copyModalUrlBtn.addEventListener('click', () => {
-      if (!currentModalLink) return;
-      navigator.clipboard.writeText(currentModalLink).then(() => {
-        const orig = copyModalUrlBtn.textContent;
-        copyModalUrlBtn.textContent = '✅ Copied!';
-        setTimeout(() => { copyModalUrlBtn.textContent = orig; }, 2000);
-      });
-    });
-
-    // Render Authentic Table Cards
-    function renderTables(count = 17, filter = 'all') {
-      const container = document.getElementById('tablesContainer');
-      container.innerHTML = '';
-      
-      for (let i = 1; i <= count; i++) {
-        // Filter logic
-        if (filter === 'grill' && (i < 1 || i > 8)) continue;
-        if (filter === 'family' && (i < 9 || i > 14)) continue;
-        if (filter === 'royal' && (i < 15 || i > 17)) continue;
-
-        const padNum = i < 10 ? `0${i}` : `${i}`;
-        const card = document.createElement('div');
-        card.className = 'table-stand-card';
-        card.innerHTML = `
-          <div class="table-stand-tag">Table Stand</div>
-          <div class="table-stand-num">${padNum}</div>
-          <div class="table-grill-badge">🟢 Grill Ready</div>
-          <div class="table-card-actions">
-            <a href="/menu?table=${i}" class="table-btn-menu">Open</a>
-            <button class="table-btn-qr" title="Scan QR" onclick="event.stopPropagation(); showQrForTable(${i});">📱</button>
-          </div>
-        `;
-        card.addEventListener('click', () => {
-          window.location.href = `/menu?table=${i}`;
-        });
-        container.appendChild(card);
-      }
-    }
-
-    // Zone filter buttons
-    document.querySelectorAll('.sim-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.sim-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        renderTables(17, tab.getAttribute('data-filter'));
-      });
-    });
-
-    fetch('/api/menu')
-      .then(res => res.json())
-      .then(data => {
-        const count = data.tableCount || 17;
-        renderTables(count, 'all');
-      })
-      .catch(() => {
-        renderTables(17, 'all');
-      });
-  </script>
+  <script src="/js/index.js"></script>
 </body>
 </html>

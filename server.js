@@ -13,7 +13,8 @@ const path = require('path');
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
-const ADMIN_PIN = String(process.env.ADMIN_PIN || '2468');
+const NODE_ENV = String(process.env.NODE_ENV || '').toLowerCase();
+const ADMIN_PIN = String(process.env.ADMIN_PIN || (NODE_ENV === 'production' ? '' : '2468'));
 const SESSION_TTL = 12 * 60 * 60 * 1000;
 const DATA_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'db.json');
@@ -26,8 +27,6 @@ const DEFAULT_SETTINGS = {
   currency: '\u20b9',
   tableCount: 17,
   footerNote: 'Demo menu. Prices in INR. Tell your server about allergies. Independent demo - not affiliated with or endorsed by Barbeque Nation.',
-  upiVpa: 'barbequenation@okaxis',
-  upiPayeeName: 'Barbeque Nation',
 };
 
 /* ------------------------------------------------------------------ */
@@ -86,10 +85,13 @@ function loadDb() {
   try {
     const parsed = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
     const seededItemsById = new Map(seedData().items.map((item) => [item.id, item]));
-    return {
+    const settings = { ...DEFAULT_SETTINGS, ...(parsed.settings || {}) };
+    delete settings.upiVpa;
+    delete settings.upiPayeeName;
+    const result = {
       ...seedData(),
       ...parsed,
-      settings: { ...DEFAULT_SETTINGS, ...(parsed.settings || {}) },
+      settings,
       categories: Array.isArray(parsed.categories) ? parsed.categories : [],
       items: Array.isArray(parsed.items) ? parsed.items.map((item) => ({
         ...item,
@@ -97,9 +99,15 @@ function loadDb() {
           ? item.dietary
           : (seededItemsById.get(item.id) || {}).dietary || inferDietaryFromTag(item.tag),
       })) : [],
-      orders: Array.isArray(parsed.orders) ? parsed.orders : [],
+      orders: Array.isArray(parsed.orders)
+        ? parsed.orders.map((order) => ({
+            ...order,
+            guestToken: typeof order.guestToken === 'string' ? order.guestToken : crypto.randomBytes(24).toString('hex'),
+          }))
+        : [],
       serviceRequests: Array.isArray(parsed.serviceRequests) ? parsed.serviceRequests : [],
     };
+    return result;
   } catch (err) {
     const backup = `${DATA_FILE}.broken-${Date.now()}`;
     fs.copyFileSync(DATA_FILE, backup);
@@ -221,8 +229,38 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-function publicOrder(order) {
-  return {
+function guestMatches(order, req) {
+  const supplied = req.query.token || (req.body && req.body.token);
+  if (!order.guestToken || typeof supplied !== 'string') return false;
+  const suppliedBuffer = Buffer.from(supplied);
+  const storedBuffer = Buffer.from(order.guestToken);
+  return suppliedBuffer.length === storedBuffer.length &&
+    crypto.timingSafeEqual(suppliedBuffer, storedBuffer);
+}
+
+function requireGuest(order, req, res) {
+  if (guestMatches(order, req)) return true;
+  res.status(403).json({ error: 'This order belongs to another guest session.' });
+  return false;
+}
+
+function requireSameOrigin(req, res, next) {
+  const origin = req.headers.origin;
+  if (!origin) return next();
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  try {
+    const originUrl = new URL(origin);
+    if (!host || originUrl.host !== String(host).split(',')[0].trim()) {
+      return res.status(403).json({ error: 'Cross-origin request rejected.' });
+    }
+  } catch {
+    return res.status(403).json({ error: 'Invalid request origin.' });
+  }
+  return next();
+}
+
+function publicOrder(order, includeGuestToken = false) {
+  const publicData = {
     id: order.id,
     code: order.code,
     table: order.table,
@@ -230,11 +268,12 @@ function publicOrder(order) {
     note: order.note,
     total: order.total,
     status: order.status,
-    paymentMethod: order.paymentMethod || 'cash',
-    paymentStatus: order.paymentStatus || 'pending',
+    handoff: order.handoff || null,
     createdAt: order.createdAt,
     updatedAt: order.updatedAt,
   };
+  if (includeGuestToken) publicData.guestToken = order.guestToken;
+  return publicData;
 }
 
 function money(value) {
@@ -267,8 +306,6 @@ function publicRestaurant() {
     tagline: s.tagline,
     currency: s.currency,
     footerNote: s.footerNote,
-    upiVpa: s.upiVpa || 'barbequenation@okaxis',
-    upiPayeeName: s.upiPayeeName || s.restaurantName,
   };
 }
 
@@ -283,9 +320,14 @@ app.use(express.json({ limit: '100kb' }));
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), geolocation=(), microphone=()');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'");
+  if (NODE_ENV === 'production') res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   if (req.path.startsWith('/api/')) res.setHeader('Cache-Control', 'no-store');
   next();
 });
+app.use(requireSameOrigin);
 
 /* ---------- Public API ---------- */
 
@@ -307,57 +349,6 @@ app.get('/api/qr', async (req, res, next) => {
       return res.json({ table, url, svg, baseUrl });
     }
     res.type('image/svg+xml').send(svg);
-  } catch (err) {
-    next(err);
-  }
-});
-
-app.get('/api/upi-qr', async (req, res, next) => {
-  try {
-    const amount = Number(req.query.amount) || 0;
-    const table = Math.max(1, parseInt(req.query.table, 10) || 1);
-    const rawCode = String(req.query.code || '').replace(/[^a-zA-Z0-9]/g, '');
-    const vpa = (db.settings.upiVpa || 'barbequenation@okaxis').trim();
-    const rawPayee = db.settings.upiPayeeName || db.settings.restaurantName || 'Restaurant';
-    // Strictly alphanumeric & spaces for NPCI guidelines (max 40 chars)
-    const payee = String(rawPayee).replace(/[^a-zA-Z0-9 ]/g, '').trim().slice(0, 40) || 'Restaurant';
-    // Clean note: NPCI forbids '#' or special characters in tn parameter
-    const note = `Table ${table}${rawCode ? ' Order ' + rawCode : ' Bill'}`.replace(/[^a-zA-Z0-9 ]/g, '').trim().slice(0, 40);
-    const amountStr = amount > 0 ? money(amount).toFixed(2) : '';
-
-    // Standard Universal UPI URI (RFC compliant)
-    const upiParams = new URLSearchParams();
-    upiParams.set('pa', vpa);
-    upiParams.set('pn', payee);
-    if (amountStr) upiParams.set('am', amountStr);
-    upiParams.set('cu', 'INR');
-    upiParams.set('tn', note);
-
-    const upiUri = `upi://pay?${upiParams.toString()}`;
-
-    // App-specific Android intents for direct opening without chooser hurdles
-    const phonepeIntent = `intent://pay?${upiParams.toString()}#Intent;scheme=upi;package=com.phonepe.app;end`;
-    const gpayIntent = `intent://pay?${upiParams.toString()}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`;
-    const paytmIntent = `intent://pay?${upiParams.toString()}#Intent;scheme=upi;package=net.one97.paytm;end`;
-
-    const svg = await QRCode.toString(upiUri, {
-      type: 'svg',
-      margin: 2,
-      width: 200,
-      errorCorrectionLevel: 'M',
-      color: { dark: '#000000', light: '#ffffff' },
-    });
-    res.json({
-      upiUri,
-      phonepeIntent,
-      gpayIntent,
-      paytmIntent,
-      svg,
-      vpa,
-      payee,
-      amount: money(amount),
-      note
-    });
   } catch (err) {
     next(err);
   }
@@ -453,81 +444,23 @@ app.post('/api/orders', (req, res, next) => {
     const total = money(orderItems.reduce((sum, line) => sum + line.price * line.qty, 0));
     db.orderSeq = Number(db.orderSeq || 100) + 1;
     const now = new Date().toISOString();
-    const paymentMethod = body.paymentMethod === 'cash' ? 'cash' : 'counter';
-    const paymentStatus = 'pending';
-
     const order = {
       id: crypto.randomUUID(),
+      guestToken: crypto.randomBytes(24).toString('hex'),
       code: String(db.orderSeq),
       table,
       items: orderItems,
       note,
       total,
       status: 'new',
-      paymentMethod,
-      paymentStatus,
+      handoff: null,
       createdAt: now,
       updatedAt: now,
       history: [{ status: 'new', at: now }],
     };
     db.orders.push(order);
     saveDb();
-    res.status(201).json({ order: publicOrder(order) });
-  } catch (err) {
-    next(err);
-  }
-});
-
-app.post('/api/orders/:id/pay', (req, res, next) => {
-  try {
-    const order = db.orders.find((entry) => entry.id === req.params.id);
-    if (!order) throw new HttpError(404, 'Order not found.');
-    const method = req.body && req.body.method;
-    if (!['upi', 'cash'].includes(method)) throw new HttpError(400, 'Invalid payment method.');
-    if (order.paymentStatus === 'paid') {
-      throw new HttpError(409, 'This order has already been paid.');
-    }
-    if (order.paymentStatus === 'pending_verification') {
-      if (method === 'upi' && order.paymentMethod === 'upi') {
-        return res.json({ order: publicOrder(order) });
-      }
-      throw new HttpError(409, 'A payment request for this order is already awaiting staff verification.');
-    }
-    const now = new Date().toISOString();
-
-    if (method === 'upi') {
-      order.paymentMethod = 'upi';
-      order.paymentStatus = 'pending_verification';
-      order.updatedAt = now;
-      db.serviceRequests = db.serviceRequests || [];
-      db.serviceRequests.push({
-        id: crypto.randomUUID(),
-        table: order.table,
-        type: 'bill',
-        note: `UPI payment submitted for Order #${order.code} (₹${Number(order.total).toFixed(2)}) — please verify and mark paid`,
-        status: 'pending',
-        createdAt: now,
-        resolvedAt: null,
-      });
-      saveDb();
-    } else if (method === 'cash') {
-      order.paymentMethod = 'cash';
-      order.paymentStatus = 'pending';
-      order.updatedAt = now;
-      db.serviceRequests = db.serviceRequests || [];
-      db.serviceRequests.push({
-        id: crypto.randomUUID(),
-        table: order.table,
-        type: 'bill',
-        note: `Diner requested cash bill at Table ${order.table} for Order #${order.code} (₹${Number(order.total).toFixed(2)})`,
-        status: 'pending',
-        createdAt: now,
-        resolvedAt: null,
-      });
-      saveDb();
-    }
-
-    res.json({ order: publicOrder(order) });
+    res.status(201).json({ order: publicOrder(order, true) });
   } catch (err) {
     next(err);
   }
@@ -536,13 +469,15 @@ app.post('/api/orders/:id/pay', (req, res, next) => {
 app.get('/api/orders/:id', (req, res) => {
   const order = db.orders.find((entry) => entry.id === req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found. Please check the link or ask a server.' });
-  res.json({ order: publicOrder(order), restaurant: publicRestaurant() });
+  if (!requireGuest(order, req, res)) return;
+  res.json({ order: publicOrder(order, true), restaurant: publicRestaurant() });
 });
 
 app.post('/api/orders/:id/cancel', (req, res, next) => {
   try {
     const order = db.orders.find((entry) => entry.id === req.params.id);
     if (!order) throw new HttpError(404, 'Order not found.');
+    if (!requireGuest(order, req, res)) return;
     if (order.status !== 'new') {
       throw new HttpError(409, 'This order is already being prepared. Please ask a server for help.');
     }
@@ -598,20 +533,19 @@ app.get('/api/admin/orders', requireAdmin, (req, res) => {
   const orders = [...db.orders]
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, 400);
-  res.json({ orders, serverTime: new Date().toISOString() });
+  res.json({ orders: orders.map((order) => publicOrder(order)), serverTime: new Date().toISOString() });
 });
 
 app.get('/api/admin/orders.csv', requireAdmin, (req, res) => {
   const orders = [...db.orders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   const esc = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
-  const rows = [['Order', 'Table', 'Status', 'Payment Method', 'Payment Status', 'Items', 'Note', 'Total', 'Placed at']];
+  const rows = [['Order', 'Table', 'Status', 'Handoff', 'Items', 'Note', 'Total', 'Placed at']];
   for (const order of orders) {
     rows.push([
       order.code,
       order.table,
       order.status,
-      order.paymentMethod || 'cash',
-      order.paymentStatus || 'pending',
+      order.handoff || '',
       order.items.map((line) => `${line.qty}x ${line.name}`).join('; '),
       order.note,
       money(order.total).toFixed(2),
@@ -630,33 +564,40 @@ app.patch('/api/admin/orders/:id', requireAdmin, (req, res, next) => {
     if (!order) throw new HttpError(404, 'Order not found.');
     const status = req.body && req.body.status;
     if (!STATUSES.includes(status)) throw new HttpError(400, 'Unknown order status.');
-    if (order.status !== status) {
+    const requestedHandoff = req.body && req.body.handoff;
+    if (requestedHandoff !== undefined && !['table', 'pickup'].includes(requestedHandoff)) {
+      throw new HttpError(400, 'Choose table service or guest pickup.');
+    }
+
+    if (requestedHandoff !== undefined && order.status !== 'ready') {
+      throw new HttpError(409, 'Choose the handoff after the order is ready.');
+    }
+    if (status === 'preparing' && order.status !== 'new') {
+      throw new HttpError(409, 'Only new orders can be started.');
+    }
+    if (status === 'ready' && order.status !== 'preparing' && requestedHandoff === undefined) {
+      throw new HttpError(409, 'Only preparing orders can be marked ready.');
+    }
+    if (status === 'cancelled' && !['new', 'preparing'].includes(order.status)) {
+      throw new HttpError(409, 'Only new or preparing orders can be cancelled.');
+    }
+    if (status === 'completed' && (order.status !== 'ready' || !(requestedHandoff || order.handoff))) {
+      throw new HttpError(409, 'Choose table service or guest pickup before completing the order.');
+    }
+
+    const handoffChanged = requestedHandoff !== undefined && order.handoff !== requestedHandoff;
+    const statusChanged = order.status !== status;
+    if (handoffChanged) {
+      order.handoff = requestedHandoff;
+      order.updatedAt = new Date().toISOString();
+    }
+    if (statusChanged) {
       const now = new Date().toISOString();
       order.status = status;
       order.updatedAt = now;
       order.history.push({ status, at: now });
-      saveDb();
     }
-    res.json({ order });
-  } catch (err) {
-    next(err);
-  }
-});
-
-/* Staff Payment Status Toggle (Anti-fraud soundbox/SMS confirmation) */
-app.patch('/api/admin/orders/:id/payment', requireAdmin, (req, res, next) => {
-  try {
-    const order = db.orders.find((entry) => entry.id === req.params.id);
-    if (!order) throw new HttpError(404, 'Order not found.');
-    const paymentStatus = req.body && req.body.paymentStatus;
-    if (!['pending', 'pending_verification', 'paid'].includes(paymentStatus)) {
-      throw new HttpError(400, 'Invalid payment status.');
-    }
-    const now = new Date().toISOString();
-    order.paymentStatus = paymentStatus;
-    if (req.body.paymentMethod) order.paymentMethod = req.body.paymentMethod;
-    order.updatedAt = now;
-    saveDb();
+    if (handoffChanged || statusChanged) saveDb();
     res.json({ order: publicOrder(order) });
   } catch (err) {
     next(err);
@@ -835,7 +776,7 @@ app.delete('/api/admin/items/:id', requireAdmin, (req, res, next) => {
 /* ---------- Admin settings & tables ---------- */
 
 app.get('/api/admin/settings', requireAdmin, (req, res) => {
-  res.json({ settings: db.settings });
+  res.json({ settings: { ...db.settings } });
 });
 
 app.patch('/api/admin/settings', requireAdmin, (req, res, next) => {
@@ -845,8 +786,6 @@ app.patch('/api/admin/settings', requireAdmin, (req, res, next) => {
     if (body.outletName !== undefined) db.settings.outletName = asString(body.outletName, 'Outlet name', { max: 100, required: false });
     if (body.tagline !== undefined) db.settings.tagline = asString(body.tagline, 'Tagline', { max: 100, required: false });
     if (body.currency !== undefined) db.settings.currency = asString(body.currency, 'Currency symbol', { max: 6 });
-    if (body.upiVpa !== undefined) db.settings.upiVpa = asString(body.upiVpa, 'UPI ID', { max: 80, required: false });
-    if (body.upiPayeeName !== undefined) db.settings.upiPayeeName = asString(body.upiPayeeName, 'UPI Payee Name', { max: 80, required: false });
     if (body.footerNote !== undefined) db.settings.footerNote = asString(body.footerNote, 'Footer note', { max: 200, required: false });
     if (body.tableCount !== undefined) {
       const count = Number(body.tableCount);
@@ -972,9 +911,14 @@ app.use((err, req, res, next) => {
 /* ------------------------------------------------------------------ */
 
 function listenOnPort(port) {
+  if (NODE_ENV === 'production' && !process.env.ADMIN_PIN) {
+    console.error('Refusing to start in production: set ADMIN_PIN to a strong PIN.');
+    process.exit(1);
+  }
   const server = app.listen(port, HOST, () => {
     currentPort = server.address().port;
-    BASE_URL = (process.env.PUBLIC_URL || '').trim().replace(/\/+$/, '') || `http://${LAN_IP}:${currentPort}`;
+    const configuredPublicUrl = (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || '').trim().replace(/\/+$/, '');
+    BASE_URL = configuredPublicUrl || `http://${LAN_IP}:${currentPort}`;
     const line = '─'.repeat(52);
     console.log(`\n  ${db.settings.restaurantName} is ready\n  ${line}`);
     console.log(`  Menu (this device)   http://localhost:${currentPort}/menu?table=1`);
@@ -984,7 +928,7 @@ function listenOnPort(port) {
     if (BASE_URL.includes('localhost')) {
       console.log('\n  Heads up: no LAN address was detected, so QR codes point to localhost.');
       console.log('  Phones will not be able to open them. Set PUBLIC_URL to your computer\'s LAN URL.');
-    } else if (!process.env.PUBLIC_URL) {
+    } else if (!configuredPublicUrl) {
       console.log('\n  Phones on the same Wi-Fi can scan the QR codes using the address above.');
       console.log('  If they cannot connect, allow Node through the firewall or set PUBLIC_URL.');
     }

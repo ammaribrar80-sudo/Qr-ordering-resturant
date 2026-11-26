@@ -4,41 +4,13 @@
 
   let currentOrder = null;
   let pollInterval = null;
-  let activePayTab = 'upi';
-  let qrLoadedForOrderId = null;
+  const orderParams = new URLSearchParams(window.location.search);
+  const orderToken = orderParams.get('token') || '';
 
   const trackingContainer = document.getElementById('trackingContainer');
   const resName = document.getElementById('resName');
   const resOutlet = document.getElementById('resOutlet');
   const toastContainer = document.getElementById('toastContainer');
-
-  async function fetchOrderUpiQr(order) {
-    if (qrLoadedForOrderId === order.id && document.getElementById('orderUpiQrSvg').querySelector('svg')) return;
-    try {
-      const res = await fetch(`/api/upi-qr?amount=${order.total}&table=${order.table}&code=${encodeURIComponent(order.code)}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      qrLoadedForOrderId = order.id;
-      const qrEl = document.getElementById('orderUpiQrSvg');
-      if (qrEl) qrEl.innerHTML = data.svg;
-      const deepLink = document.getElementById('orderUpiDeepLink');
-      if (deepLink) deepLink.href = data.upiUri;
-
-      // Smart mobile app routing: Android Chrome supports direct package intents
-      const isAndroid = /Android/i.test(navigator.userAgent);
-      const ph = document.getElementById('orderPhonepeLink');
-      if (ph) ph.href = (isAndroid && data.phonepeIntent) ? data.phonepeIntent : data.upiUri;
-      const gp = document.getElementById('orderGpayLink');
-      if (gp) gp.href = (isAndroid && data.gpayIntent) ? data.gpayIntent : data.upiUri;
-      const pt = document.getElementById('orderPaytmLink');
-      if (pt) pt.href = (isAndroid && data.paytmIntent) ? data.paytmIntent : data.upiUri;
-
-      const vpa = document.getElementById('orderVpaText');
-      if (vpa) vpa.textContent = data.vpa || 'barbequenation@okaxis';
-    } catch (e) {
-      console.warn('Could not load UPI QR:', e);
-    }
-  }
 
   function showToast(message, type = 'info') {
     const toast = document.createElement('div');
@@ -71,7 +43,7 @@
     }
 
     try {
-      const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}`);
+      const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}?token=${encodeURIComponent(orderToken)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Order not found.');
 
@@ -107,10 +79,16 @@
       bannerText = '🍳 On the Grill! Our chefs are preparing your items.';
       bannerClass = 'banner-preparing';
     } else if (status === 'ready') {
-      bannerText = '🔔 Order Ready! A server is bringing this to your table.';
+      bannerText = order.handoff === 'pickup'
+        ? '🔔 Order ready! Please collect it from the counter.'
+        : '🔔 Order ready! The restaurant team is arranging handoff.';
       bannerClass = 'banner-ready';
     } else if (status === 'completed') {
-      bannerText = '✅ Order Served! Enjoy your delicious meal.';
+      bannerText = order.handoff === 'pickup'
+        ? '✅ Order collected. Enjoy your meal!'
+        : order.handoff === 'table'
+        ? '✅ Order served at your table. Enjoy your meal!'
+        : '✅ This order has been completed.';
       bannerClass = 'banner-completed';
     } else if (status === 'cancelled') {
       bannerText = '❌ This order has been cancelled.';
@@ -122,7 +100,7 @@
       { key: 'new', label: 'Received', icon: '📝' },
       { key: 'preparing', label: 'Cooking', icon: '🔥' },
       { key: 'ready', label: 'Ready', icon: '🔔' },
-      { key: 'completed', label: 'Served', icon: '✨' }
+      { key: 'completed', label: 'Handed over', icon: '✨' }
     ];
 
     const orderRank = { new: 0, preparing: 1, ready: 2, completed: 3, cancelled: -1 };
@@ -170,97 +148,6 @@
 
     const placedTime = new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    let paymentCardHtml = '';
-    if (status !== 'cancelled') {
-      if (order.paymentStatus === 'paid') {
-        paymentCardHtml = `
-          <div style="background: rgba(46, 204, 113, 0.15); border: 1.5px solid rgba(46, 204, 113, 0.45); border-radius: var(--radius-md); padding: 20px; margin-top: 24px; text-align: center;">
-            <div style="font-size: 32px; margin-bottom: 4px;">✅</div>
-            <h4 style="font-size: 18px; color: #2ecc71; margin: 0 0 4px; font-weight: 700;">Bill Settled &amp; Paid</h4>
-            <p style="font-size: 13.5px; color: #c9ded3; margin: 0;">Payment confirmed by restaurant staff. Thank you for dining with us!</p>
-          </div>
-        `;
-      } else if (order.paymentStatus === 'pending_verification') {
-        paymentCardHtml = `
-          <div style="background: rgba(243, 156, 18, 0.18); border: 1.5px solid rgba(243, 156, 18, 0.45); border-radius: var(--radius-md); padding: 20px; margin-top: 24px; text-align: center;">
-            <div style="font-size: 32px; margin-bottom: 4px;">⏳</div>
-            <h4 style="font-size: 18px; color: #ffbe53; margin: 0 0 4px; font-weight: 700;">UPI Payment Pending Verification</h4>
-            <p style="font-size: 13.5px; color: #c9ded3; margin: 0;">Staff has been alerted to verify soundbox/SMS for ${currency}${Number(order.total).toFixed(2)}. This screen updates automatically.</p>
-          </div>
-        `;
-      } else {
-        paymentCardHtml = `
-          <div style="background: rgba(8, 25, 16, 0.95); border: 1.5px solid rgba(226, 123, 30, 0.35); border-radius: var(--radius-md); padding: 22px; margin-top: 24px; box-shadow: 0 8px 30px rgba(0,0,0,0.4);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-              <div>
-                <h4 style="font-size: 17px; font-weight: 700; color: #fff; margin: 0;">Settle Bill &amp; Pay</h4>
-                <p style="font-size: 12.5px; color: #ffbe53; margin: 3px 0 0;">Pay when you are done eating at table or counter</p>
-              </div>
-              <span style="font-size: 24px;">💳</span>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
-              <button type="button" class="btn btn-sm ${activePayTab === 'upi' ? 'btn-primary' : 'btn-outline'}" id="payTabUpiBtn" style="font-weight: 700;">
-                ⚡ Instant UPI
-              </button>
-              <button type="button" class="btn btn-sm ${activePayTab === 'cash' ? 'btn-primary' : 'btn-outline'}" id="payTabCashBtn" style="font-weight: 700;">
-                💵 Pay with Cash
-              </button>
-            </div>
-
-            <div id="payUpiSection" style="${activePayTab === 'upi' ? 'display:block;' : 'display:none;'}">
-              <div style="text-align: center; margin-bottom: 14px;">
-                <div style="background: #ffffff; padding: 10px; border-radius: 12px; display: inline-flex; box-shadow: 0 6px 20px rgba(0,0,0,0.35); border: 2px solid #ffbe53;">
-                  <div id="orderUpiQrSvg" style="display: flex; justify-content: center; min-height: 160px; min-width: 160px; align-items: center;">Loading UPI QR...</div>
-                </div>
-                <div style="font-size: 12px; color: #c9ded3; font-weight: 600; margin-top: 8px;">Scan with PhonePe, Google Pay, Paytm or BHIM</div>
-              </div>
-
-              <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
-                <a href="#" id="orderUpiDeepLink" class="btn-upi-app btn-upi-universal" style="text-align: center;">⚡ Open Installed UPI App</a>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
-                  <a href="#" id="orderPhonepeLink" class="upi-quick-btn phonepe-color">
-                    <img src="/images/phonepe-logo.svg" width="18" height="18" alt="PhonePe">
-                    <span>PhonePe</span>
-                  </a>
-                  <a href="#" id="orderGpayLink" class="upi-quick-btn gpay-color">
-                    <img src="/images/gpay-logo.svg" width="18" height="18" alt="GPay">
-                    <span>GPay</span>
-                  </a>
-                  <a href="#" id="orderPaytmLink" class="upi-quick-btn paytm-color">
-                    <img src="/images/paytm-logo.svg" width="42" height="15" alt="Paytm">
-                  </a>
-                </div>
-              </div>
-
-              <div class="upi-vpa-row" style="margin-bottom: 6px;">
-                <span>UPI ID:</span>
-                <strong id="orderVpaText">${escapeHtml((restaurant && restaurant.upiVpa) || 'barbequenation@okaxis')}</strong>
-                <button type="button" class="btn-copy-vpa" id="orderCopyVpaBtn">Copy</button>
-              </div>
-
-              <div style="font-size: 11.5px; color: #ffbe53; margin: 0 0 14px; text-align: center; line-height: 1.4;">
-                💡 <em>Enter your real registered UPI ID in Admin Settings so PhonePe/GPay can route payments to your bank.</em>
-              </div>
-
-              <button type="button" class="btn btn-outline btn-sm" id="confirmUpiPaidBtn" style="width: 100%; border-color: var(--green); color: #2ecc71; font-weight: 700; padding: 11px;">
-                ✓ I Have Paid via UPI (Alert Staff)
-              </button>
-            </div>
-
-            <div id="payCashSection" style="${activePayTab === 'cash' ? 'display:block;' : 'display:none;'} text-align: center; padding: 16px 8px;">
-              <p style="font-size: 14px; color: #c9ded3; margin-bottom: 14px; line-height: 1.5;">
-                Ready to settle in cash? You can call the server with the printed bill to Table <strong>${order.table}</strong>, or pay at the front reception counter upon exit.
-              </p>
-              <button type="button" class="btn btn-outline btn-sm" id="requestCashBillBtn" style="width: 100%; border-color: var(--accent); color: #ffbe53; font-weight: 700; padding: 11px;">
-                🛎️ Call Waiter with Cash Bill
-              </button>
-            </div>
-          </div>
-        `;
-      }
-    }
-
     trackingContainer.innerHTML = `
       <div class="order-status-banner ${bannerClass}">${bannerText}</div>
 
@@ -288,9 +175,8 @@
           <span>Total</span>
           <span>${currency}${Number(order.total).toFixed(2)}</span>
         </div>
+        <p style="font-size: 12.5px; color: var(--muted); margin-top: 8px;">Please settle your bill directly with restaurant staff.</p>
       </div>
-
-      ${paymentCardHtml}
 
       <div style="margin-top: 28px; display: flex; flex-direction: column; gap: 10px;">
         <a href="/menu?table=${order.table}" class="btn btn-primary btn-lg" style="width: 100%;">
@@ -299,86 +185,6 @@
         ${cancelBtnHtml}
       </div>
     `;
-
-    // Hook up payment interactions
-    if (order.paymentStatus === 'pending') {
-      const payTabUpiBtn = document.getElementById('payTabUpiBtn');
-      const payTabCashBtn = document.getElementById('payTabCashBtn');
-      const payUpiSection = document.getElementById('payUpiSection');
-      const payCashSection = document.getElementById('payCashSection');
-
-      if (payTabUpiBtn && payTabCashBtn) {
-        payTabUpiBtn.onclick = () => {
-          activePayTab = 'upi';
-          payTabUpiBtn.className = 'btn btn-sm btn-primary';
-          payTabCashBtn.className = 'btn btn-sm btn-outline';
-          payUpiSection.style.display = 'block';
-          payCashSection.style.display = 'none';
-        };
-        payTabCashBtn.onclick = () => {
-          activePayTab = 'cash';
-          payTabCashBtn.className = 'btn btn-sm btn-primary';
-          payTabUpiBtn.className = 'btn btn-sm btn-outline';
-          payUpiSection.style.display = 'none';
-          payCashSection.style.display = 'block';
-        };
-      }
-
-      // Fetch dynamic UPI QR
-      fetchOrderUpiQr(order);
-
-      const orderCopyVpaBtn = document.getElementById('orderCopyVpaBtn');
-      if (orderCopyVpaBtn) {
-        orderCopyVpaBtn.onclick = () => {
-          const vpaText = document.getElementById('orderVpaText').textContent;
-          navigator.clipboard.writeText(vpaText).then(() => showToast('UPI ID copied!', 'success'));
-        };
-      }
-
-      const confirmUpiPaidBtn = document.getElementById('confirmUpiPaidBtn');
-      if (confirmUpiPaidBtn) {
-        confirmUpiPaidBtn.onclick = async () => {
-          confirmUpiPaidBtn.disabled = true;
-          confirmUpiPaidBtn.textContent = 'Notifying Staff...';
-          try {
-            const r = await fetch(`/api/orders/${encodeURIComponent(order.id)}/pay`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ method: 'upi' })
-            });
-            if (!r.ok) throw new Error('Could not submit payment notice.');
-            showToast('Staff alerted! They will verify and update your bill.', 'success');
-            fetchOrder();
-          } catch (e) {
-            showToast(e.message, 'error');
-            confirmUpiPaidBtn.disabled = false;
-            confirmUpiPaidBtn.textContent = '✓ I Have Paid via UPI (Alert Staff)';
-          }
-        };
-      }
-
-      const requestCashBillBtn = document.getElementById('requestCashBillBtn');
-      if (requestCashBillBtn) {
-        requestCashBillBtn.onclick = async () => {
-          requestCashBillBtn.disabled = true;
-          requestCashBillBtn.textContent = 'Requesting Server...';
-          try {
-            const r = await fetch(`/api/orders/${encodeURIComponent(order.id)}/pay`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ method: 'cash' })
-            });
-            if (!r.ok) throw new Error('Could not request cash bill.');
-            showToast('Staff requested with physical bill!', 'success');
-            fetchOrder();
-          } catch (e) {
-            showToast(e.message, 'error');
-            requestCashBillBtn.disabled = false;
-            requestCashBillBtn.textContent = '🛎️ Call Waiter with Cash Bill';
-          }
-        };
-      }
-    }
 
     // Attach cancel button event if present
     const cancelBtn = document.getElementById('cancelOrderBtn');
@@ -389,7 +195,11 @@
         cancelBtn.textContent = 'Cancelling...';
 
         try {
-          const res = await fetch(`/api/orders/${encodeURIComponent(order.id)}/cancel`, { method: 'POST' });
+          const res = await fetch(`/api/orders/${encodeURIComponent(order.id)}/cancel`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: orderToken })
+          });
           const resData = await res.json();
           if (!res.ok) throw new Error(resData.error || 'Could not cancel order.');
           showToast('Order cancelled.', 'info');
