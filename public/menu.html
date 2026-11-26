@@ -13,19 +13,16 @@
   <header class="menu-header">
     <div class="menu-header-inner">
       <div class="brand-block">
-        <a href="/" title="Back to Home / Table Simulator" style="text-decoration: none;">
-          <div class="bbq-brand-box">
-            <img src="/images/bbq-logo.svg" alt="Barbeque Nation" class="bbq-logo-full">
-            <img src="/images/bbq-crown.svg" alt="Barbeque Nation" class="bbq-logo-crown">
-          </div>
-        </a>
+        <div class="bbq-brand-box">
+          <img src="/images/bbq-logo.svg" alt="Barbeque Nation" class="bbq-logo-full">
+          <img src="/images/bbq-crown.svg" alt="Barbeque Nation" class="bbq-logo-crown">
+        </div>
         <!-- Hidden accessibility fields for JS sync -->
         <span id="restaurantName" style="display: none;">Barbeque Nation</span>
         <span id="outletName" style="display: none;"></span>
         <span id="tagline" style="display: none;"></span>
       </div>
       <div style="display: flex; align-items: center; gap: 12px;">
-        <a href="/" class="btn btn-outline btn-sm" title="Back to Landing Page & Table Simulator">🏠 Home</a>
         <div class="table-badge-card" id="changeTableBtn" role="button" tabindex="0" title="Click to Change Table">
           <span class="table-badge-label">Table</span>
           <div class="table-num-selector-row">
@@ -44,8 +41,11 @@
   <!-- Menu Search -->
   <div class="filter-bar">
     <div class="search-box">
-      <span class="search-icon">🔍</span>
-      <input type="text" id="searchInput" class="form-input" placeholder="Search dishes, grills, desserts...">
+      <svg class="search-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none">
+        <circle cx="10.8" cy="10.8" r="6.8"></circle>
+        <path d="m16 16 4.2 4.2"></path>
+      </svg>
+      <input type="text" id="searchInput" class="form-input" aria-label="Search the menu" placeholder="What are you craving?">
     </div>
   </div>
 
