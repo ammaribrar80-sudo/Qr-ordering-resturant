@@ -28,7 +28,7 @@
 
 - **👨‍🍳 Staff Operations Dashboard**:
   - Protected with staff PIN authentication (development default: `2468`; production requires `ADMIN_PIN`).
-  - The staff page is not linked from guest-facing pages. In production it is served only at the private path configured with `ADMIN_ACCESS_PATH`; `/admin` and `/admin.html` return 404. The PIN remains required; the private path is not a substitute for authentication.
+  - The staff page is not linked from guest-facing pages. In production it is available at the private path configured with `ADMIN_ACCESS_PATH`, or at `/admin404`; `/admin` and `/admin.html` return 404. Both routes still require the staff PIN.
   - Sign-out does not close ordering; staff control guest ordering separately.
   - **Live Orders Queue**: Instant order cards with elapsed timers, highlighted kitchen instructions, and one-click status transitions.
   - **Synthesized Kitchen Audio Chime**: Audible alert using Web Audio API when a new table order arrives.

@@ -923,9 +923,12 @@ app.get('/api/admin/qr-sheet', async (req, res, next) => {
 
 /* ---------- Static site & errors ---------- */
 
-app.get(ADMIN_ACCESS_PATH, (req, res) => {
+const serveAdminDashboard = (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));
-});
+};
+
+app.get(ADMIN_ACCESS_PATH, serveAdminDashboard);
+app.get('/admin404', serveAdminDashboard);
 
 if (ADMIN_ACCESS_PATH !== '/admin') {
   app.get(['/admin', '/admin.html'], (req, res) => res.sendStatus(404));
