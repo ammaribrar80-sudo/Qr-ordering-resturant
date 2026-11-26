@@ -27,7 +27,7 @@
   - Payment is handled directly with restaurant staff; the app does not collect or verify payments.
 
 - **👨‍🍳 Staff Operations Dashboard**:
-  - Protected with staff PIN authentication (development default: `2468`; production requires `ADMIN_PIN`).
+  - Protected with staff passcode authentication (development default: `2468`; production requires a private `ADMIN_PIN` of at least 12 characters).
   - The staff page is not linked from guest-facing pages. Open it directly at `/admin404`; `/admin` and `/admin.html` return 404. The URL is not secret, so the staff PIN remains essential.
   - Sign-out does not close ordering; staff control guest ordering separately.
   - **Live Orders Queue**: Instant order cards with elapsed timers, highlighted kitchen instructions, and one-click status transitions.
@@ -94,11 +94,18 @@ The included `render.yaml` configures a free Render web service for presenting t
 
 1. Push the repository to GitHub.
 2. In [Render](https://render.com), choose **New + → Blueprint** and select the repository.
-3. Set `ADMIN_PIN` to a strong private PIN, then deploy the Blueprint.
+3. Set `ADMIN_PIN` to a unique private passphrase of at least 12 characters, then deploy the Blueprint.
 4. Open the Render service URL. QR codes use Render's external URL automatically; set `PUBLIC_URL` only if you use a custom domain.
 5. Open the staff login at `<your-render-service-url>/admin404`. The route itself is not secret; access is protected by `ADMIN_PIN`.
 
 **Free-demo limitations:** Render free web services sleep after 15 minutes without traffic and can take about a minute to wake. Their filesystem is temporary, so menu edits and orders can be lost when the service sleeps, restarts, or redeploys. Use this free setup for a demo only, not for restaurant operations or customer order records. Durable data requires a paid Render service with persistent storage or a separate database.
+
+## 🔒 Security Checks
+
+- Guest service-request status is private to the browser session that created the request; staff lists never include guest tokens.
+- Secret and database files are excluded from Git. The repository's GitHub Actions workflow scans Git history for secrets, runs the security regression tests, and audits production dependencies.
+- Run the focused tests locally with `npm test`. Production startup is refused when `ADMIN_PIN` is shorter than 12 characters.
+- Configure the `Security checks` workflow as a required status check in GitHub branch protection if merges to `main` must be blocked when a check fails.
 
 ---
 

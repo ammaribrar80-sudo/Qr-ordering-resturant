@@ -1,5 +1,7 @@
 node_modules/
-data/db.json
+data/
 *.log
-.env
+*.tmp
+.env*
+!.env.example
 .DS_Store
