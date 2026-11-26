@@ -13,6 +13,7 @@
 
 - **📱 Guest Table Ordering (`/menu?table=1`)**:
   - Automatically loads with the scanned table number preset.
+  - Staff can pause and reopen guest ordering from the protected dashboard; QR scans show a closed notice while ordering is paused.
   - Category tabs navigation with smooth scrolling.
   - Dietary filters (Vegetarian, Non-veg, Bestseller) and instant search.
   - Interactive cart drawer with item notes, quantity modifiers, and subtotal.
@@ -27,6 +28,7 @@
 
 - **👨‍🍳 Staff Operations Dashboard (`/admin`)**:
   - Protected with staff PIN authentication (development default: `2468`; production requires `ADMIN_PIN`).
+  - Staff portal is not linked from guest-facing pages. Sign-out does not close ordering; staff control guest ordering separately.
   - **Live Orders Queue**: Instant order cards with elapsed timers, highlighted kitchen instructions, and one-click status transitions.
   - **Synthesized Kitchen Audio Chime**: Audible alert using Web Audio API when a new table order arrives.
   - **Menu Management**: Full CRUD for dishes & categories with instantaneous "In Stock / Sold Out" toggles.

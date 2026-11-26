@@ -58,6 +58,23 @@
   gap: 9px;
 }
 
+.ordering-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ordering-state {
+  color: #166534;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ordering-state.is-closed {
+  color: #b91c1c;
+}
+
 .admin-header .admin-header-button {
   min-height: 36px;
   border-color: rgba(255, 99, 1, 0.3);
