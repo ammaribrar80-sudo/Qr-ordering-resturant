@@ -199,9 +199,16 @@
           }).join('')}
         </div>
         <div class="conveyor-controls" aria-label="${escapeHtml(lane.title)} belt controls">
-          <button type="button" class="conveyor-control" data-belt-control="previous" aria-label="Previous dish">←</button>
-          <button type="button" class="conveyor-control" data-belt-control="pause" aria-label="${lane.state.paused ? 'Resume belt' : 'Pause belt'}" aria-pressed="${lane.state.paused}">${lane.state.paused ? '▶ Resume' : 'Ⅱ Pause'}</button>
-          <button type="button" class="conveyor-control" data-belt-control="next" aria-label="Next dish">→</button>
+          <button type="button" class="conveyor-control" data-belt-control="previous" aria-label="Previous dish" title="Previous dish">
+            <svg class="conveyor-icon conveyor-icon-chevron" aria-hidden="true" viewBox="0 0 24 24"><path d="m14.5 5.5-6.5 6.5 6.5 6.5"></path></svg>
+          </button>
+          <button type="button" class="conveyor-control conveyor-control-pause" data-belt-control="pause" aria-label="${lane.state.paused ? 'Resume belt' : 'Pause belt'}" title="${lane.state.paused ? 'Resume belt' : 'Pause belt'}" aria-pressed="${lane.state.paused}">
+            <svg class="conveyor-icon conveyor-icon-play" aria-hidden="true" viewBox="0 0 24 24"><path d="M8 5.5v13l10-6.5z"></path></svg>
+            <svg class="conveyor-icon conveyor-icon-pause" aria-hidden="true" viewBox="0 0 24 24"><path d="M8 6v12M16 6v12"></path></svg>
+          </button>
+          <button type="button" class="conveyor-control" data-belt-control="next" aria-label="Next dish" title="Next dish">
+            <svg class="conveyor-icon conveyor-icon-chevron" aria-hidden="true" viewBox="0 0 24 24"><path d="m9.5 5.5 6.5 6.5-6.5 6.5"></path></svg>
+          </button>
         </div>
         <div class="conveyor-caption" data-belt-caption="${lane.id}" aria-live="polite"></div>
       </section>
@@ -379,7 +386,7 @@
     if (button) {
       button.setAttribute('aria-pressed', String(paused));
       button.setAttribute('aria-label', paused ? 'Resume belt' : 'Pause belt');
-      button.textContent = paused ? '▶ Resume' : 'Ⅱ Pause';
+      button.setAttribute('title', paused ? 'Resume belt' : 'Pause belt');
     }
     if (paused) stopConveyor(lane);
     else startConveyor(lane);
