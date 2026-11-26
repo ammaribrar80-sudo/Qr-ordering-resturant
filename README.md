@@ -28,7 +28,7 @@
 
 - **👨‍🍳 Staff Operations Dashboard**:
   - Protected with staff PIN authentication (development default: `2468`; production requires `ADMIN_PIN`).
-  - The staff page is not linked from guest-facing pages. In production it is available at the private path configured with `ADMIN_ACCESS_PATH`, or at `/admin404`; `/admin` and `/admin.html` return 404. Both routes still require the staff PIN.
+  - The staff page is not linked from guest-facing pages. Open it directly at `/admin404`; `/admin` and `/admin.html` return 404. The URL is not secret, so the staff PIN remains essential.
   - Sign-out does not close ordering; staff control guest ordering separately.
   - **Live Orders Queue**: Instant order cards with elapsed timers, highlighted kitchen instructions, and one-click status transitions.
   - **Synthesized Kitchen Audio Chime**: Audible alert using Web Audio API when a new table order arrives.
@@ -65,7 +65,7 @@ npm.cmd start
 The server automatically detects an open port (default `3000` or fallback `4000`) and displays:
 - **Landing Page & Table Simulator**: `http://localhost:4000`
 - **Guest Menu**: `http://localhost:4000/menu?table=1`
-- **Staff Kitchen Dashboard**: `http://localhost:4000/admin` *(PIN: `2468`)*
+- **Staff Kitchen Dashboard**: `http://localhost:4000/admin404` *(PIN: `2468`)*
 
 ---
 
@@ -94,8 +94,9 @@ The included `render.yaml` configures a free Render web service for presenting t
 
 1. Push the repository to GitHub.
 2. In [Render](https://render.com), choose **New + → Blueprint** and select the repository.
-3. Set `ADMIN_PIN` to a strong private PIN and `ADMIN_ACCESS_PATH` to a private path such as `/staff-` followed by at least 24 random letters, numbers, underscores, or hyphens, then deploy the Blueprint. Keep the path private; the dashboard still requires the PIN.
+3. Set `ADMIN_PIN` to a strong private PIN, then deploy the Blueprint.
 4. Open the Render service URL. QR codes use Render's external URL automatically; set `PUBLIC_URL` only if you use a custom domain.
+5. Open the staff login at `<your-render-service-url>/admin404`. The route itself is not secret; access is protected by `ADMIN_PIN`.
 
 **Free-demo limitations:** Render free web services sleep after 15 minutes without traffic and can take about a minute to wake. Their filesystem is temporary, so menu edits and orders can be lost when the service sleeps, restarts, or redeploys. Use this free setup for a demo only, not for restaurant operations or customer order records. Durable data requires a paid Render service with persistent storage or a separate database.
 
