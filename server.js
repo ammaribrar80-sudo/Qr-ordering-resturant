@@ -14,9 +14,10 @@ const path = require('path');
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 const NODE_ENV = String(process.env.NODE_ENV || '').toLowerCase();
-const ADMIN_PIN = String(process.env.ADMIN_PIN || (NODE_ENV === 'production' ? '' : '2468'));
+const ADMIN_PIN = String(process.env.ADMIN_PIN || (NODE_ENV === 'production' ? '' : '2468')).trim();
+const MIN_ADMIN_PIN_LENGTH = 12;
 const SESSION_TTL = 12 * 60 * 60 * 1000;
-const DATA_DIR = path.join(__dirname, 'data');
+const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'db.json');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
@@ -80,7 +81,7 @@ function loadDb() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   if (!fs.existsSync(DATA_FILE)) {
     const fresh = seedData();
-    fs.writeFileSync(DATA_FILE, JSON.stringify(fresh, null, 2));
+    fs.writeFileSync(DATA_FILE, JSON.stringify(fresh, null, 2), { mode: 0o600 });
     return fresh;
   }
   try {
@@ -124,7 +125,7 @@ let db = loadDb();
 function saveDb() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   const tmp = `${DATA_FILE}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(db, null, 2));
+  fs.writeFileSync(tmp, JSON.stringify(db, null, 2), { mode: 0o600 });
   fs.renameSync(tmp, DATA_FILE);
 }
 
@@ -181,14 +182,23 @@ function allow(key, max, windowMs) {
   const now = Date.now();
   let bucket = rateBuckets.get(key);
   if (!bucket || now > bucket.reset) {
+    if (!bucket && rateBuckets.size >= 10000) {
+      for (const [k, v] of rateBuckets) if (v.reset < now) rateBuckets.delete(k);
+      if (rateBuckets.size >= 10000) return false;
+    }
     bucket = { count: 0, reset: now + windowMs };
     rateBuckets.set(key, bucket);
   }
   bucket.count += 1;
-  if (rateBuckets.size > 5000) {
-    for (const [k, v] of rateBuckets) if (v.reset < now) rateBuckets.delete(k);
-  }
   return bucket.count <= max;
+}
+
+function rateLimit(key, max, windowMs, message = 'Too many requests. Please wait a moment.') {
+  return (req, res, next) => {
+    if (allow(`${key}:${req.ip}`, max, windowMs)) return next();
+    res.setHeader('Retry-After', String(Math.ceil(windowMs / 1000)));
+    return res.status(429).json({ error: message });
+  };
 }
 
 function readCookie(req, name) {
@@ -232,9 +242,13 @@ function requireAdmin(req, res, next) {
 
 function guestMatches(order, req) {
   const supplied = req.query.token || (req.body && req.body.token);
-  if (!order.guestToken || typeof supplied !== 'string') return false;
+  return tokenMatches(supplied, order.guestToken);
+}
+
+function tokenMatches(supplied, stored) {
+  if (typeof supplied !== 'string' || typeof stored !== 'string') return false;
   const suppliedBuffer = Buffer.from(supplied);
-  const storedBuffer = Buffer.from(order.guestToken);
+  const storedBuffer = Buffer.from(stored);
   return suppliedBuffer.length === storedBuffer.length &&
     crypto.timingSafeEqual(suppliedBuffer, storedBuffer);
 }
@@ -274,6 +288,20 @@ function publicOrder(order, includeGuestToken = false) {
     updatedAt: order.updatedAt,
   };
   if (includeGuestToken) publicData.guestToken = order.guestToken;
+  return publicData;
+}
+
+function publicServiceRequest(request, includeGuestToken = false) {
+  const publicData = {
+    id: request.id,
+    table: request.table,
+    type: request.type,
+    note: request.note,
+    status: request.status,
+    createdAt: request.createdAt,
+    resolvedAt: request.resolvedAt || null,
+  };
+  if (includeGuestToken) publicData.guestToken = request.guestToken;
   return publicData;
 }
 
@@ -321,6 +349,9 @@ app.use(express.json({ limit: '100kb' }));
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), geolocation=(), microphone=()');
   res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'");
@@ -332,9 +363,9 @@ app.use(requireSameOrigin);
 
 /* ---------- Public API ---------- */
 
-app.get('/api/health', (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
+app.get('/api/health', rateLimit('health', 120, 60 * 1000), (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
 
-app.get('/api/qr', async (req, res, next) => {
+app.get('/api/qr', rateLimit('qr', 60, 60 * 1000), async (req, res, next) => {
   try {
     const baseUrl = getBaseUrl(req);
     const table = Math.max(1, parseInt(req.query.table, 10) || 1);
@@ -356,13 +387,10 @@ app.get('/api/qr', async (req, res, next) => {
 });
 
 /* Service Requests (Call Waiter / Table Services) */
-app.post('/api/service-requests', (req, res, next) => {
+app.post('/api/service-requests', rateLimit('service-create', 20, 10 * 60 * 1000), (req, res, next) => {
   try {
     if (!db.settings.orderingOpen) {
       throw new HttpError(409, 'Guest ordering is currently closed.');
-    }
-    if (!allow(`srv:${req.ip}`, 20, 10 * 60 * 1000)) {
-      throw new HttpError(429, 'Too many requests. Please wait a moment.');
     }
     const body = req.body || {};
     const table = Number(body.table);
@@ -370,11 +398,15 @@ app.post('/api/service-requests', (req, res, next) => {
       throw new HttpError(400, 'Please choose a valid table.');
     }
     const validTypes = ['water', 'cutlery', 'bill', 'waiter', 'clean', 'other'];
-    const type = validTypes.includes(body.type) ? body.type : 'waiter';
-    const note = (body.note || '').trim().slice(0, 140);
+    if (typeof body.type !== 'string' || !validTypes.includes(body.type)) {
+      throw new HttpError(400, 'Please choose a valid service request.');
+    }
+    const type = body.type;
+    const note = asString(body.note, 'Note', { max: 140, required: false });
     const now = new Date().toISOString();
     const serviceRequest = {
       id: crypto.randomUUID(),
+      guestToken: crypto.randomBytes(24).toString('hex'),
       table,
       type,
       note,
@@ -385,22 +417,24 @@ app.post('/api/service-requests', (req, res, next) => {
     db.serviceRequests = db.serviceRequests || [];
     db.serviceRequests.push(serviceRequest);
     saveDb();
-    res.status(201).json({ serviceRequest });
+    res.status(201).json({ serviceRequest: publicServiceRequest(serviceRequest, true) });
   } catch (err) {
     next(err);
   }
 });
 
-app.get('/api/service-requests', (req, res) => {
-  const table = parseInt(req.query.table, 10);
-  const requests = (db.serviceRequests || [])
-    .filter(r => !table || r.table === table)
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    .slice(0, 20);
-  res.json({ serviceRequests: requests });
+app.get('/api/service-requests', rateLimit('service-read', 120, 60 * 1000), (req, res) => {
+  const table = typeof req.query.table === 'string' ? Number(req.query.table) : NaN;
+  if (!Number.isInteger(table) || table < 1 || table > db.settings.tableCount) {
+    return res.status(400).json({ error: 'Please choose a valid table.' });
+  }
+  const request = (db.serviceRequests || []).find((entry) =>
+    entry.table === table && tokenMatches(req.get('x-guest-token'), entry.guestToken));
+  if (!request) return res.status(403).json({ error: 'This service request belongs to another guest session.' });
+  return res.json({ serviceRequests: [publicServiceRequest(request)] });
 });
 
-app.get('/api/menu', (req, res) => {
+app.get('/api/menu', rateLimit('menu', 120, 60 * 1000), (req, res) => {
   if (!db.settings.orderingOpen) {
     return res.json({ orderingOpen: false, restaurant: publicRestaurant() });
   }
@@ -413,19 +447,15 @@ app.get('/api/menu', (req, res) => {
   });
 });
 
-app.get('/api/ordering-status', (req, res) => {
+app.get('/api/ordering-status', rateLimit('ordering-status', 120, 60 * 1000), (req, res) => {
   res.json({ orderingOpen: Boolean(db.settings.orderingOpen) });
 });
 
-app.post('/api/orders', (req, res, next) => {
+app.post('/api/orders', rateLimit('orders', 15, 10 * 60 * 1000, 'Too many orders from this device. Please wait a moment.'), (req, res, next) => {
   try {
     if (!db.settings.orderingOpen) {
       throw new HttpError(409, 'Guest ordering is currently closed.');
     }
-    if (!allow(`order:${req.ip}`, 15, 10 * 60 * 1000)) {
-      throw new HttpError(429, 'Too many orders from this device. Please wait a moment.');
-    }
-
     const body = req.body || {};
     const table = Number(body.table);
     if (!Number.isInteger(table) || table < 1 || table > db.settings.tableCount) {
@@ -481,14 +511,14 @@ app.post('/api/orders', (req, res, next) => {
   }
 });
 
-app.get('/api/orders/:id', (req, res) => {
+app.get('/api/orders/:id', rateLimit('order-read', 120, 60 * 1000), (req, res) => {
   const order = db.orders.find((entry) => entry.id === req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found. Please check the link or ask a server.' });
   if (!requireGuest(order, req, res)) return;
   res.json({ order: publicOrder(order, true), restaurant: publicRestaurant() });
 });
 
-app.post('/api/orders/:id/cancel', (req, res, next) => {
+app.post('/api/orders/:id/cancel', rateLimit('order-cancel', 15, 10 * 60 * 1000), (req, res, next) => {
   try {
     const order = db.orders.find((entry) => entry.id === req.params.id);
     if (!order) throw new HttpError(404, 'Order not found.');
@@ -509,21 +539,18 @@ app.post('/api/orders/:id/cancel', (req, res, next) => {
 
 /* ---------- Admin auth ---------- */
 
-app.post('/api/admin/login', (req, res, next) => {
+app.post('/api/admin/login', rateLimit('login', 10, 10 * 60 * 1000, 'Too many attempts. Please wait a few minutes.'), (req, res, next) => {
   try {
-    if (!allow(`login:${req.ip}`, 10, 10 * 60 * 1000)) {
-      throw new HttpError(429, 'Too many attempts. Please wait a few minutes.');
-    }
     const pin = req.body && req.body.pin;
-    if (typeof pin !== 'string' || !pinMatches(pin)) {
+    if (typeof pin !== 'string' || pin.length > 128 || !pinMatches(pin)) {
       throw new HttpError(401, 'That PIN is not correct.');
     }
     const token = crypto.randomBytes(32).toString('hex');
     sessions.set(token, Date.now() + SESSION_TTL);
     res.cookie('qr_admin', token, {
       httpOnly: true,
-      sameSite: 'lax',
-      secure: req.secure,
+      sameSite: 'strict',
+      secure: NODE_ENV === 'production' || req.secure,
       maxAge: SESSION_TTL,
       path: '/',
     });
@@ -553,7 +580,11 @@ app.get('/api/admin/orders', requireAdmin, (req, res) => {
 
 app.get('/api/admin/orders.csv', requireAdmin, (req, res) => {
   const orders = [...db.orders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  const esc = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+  const esc = (value) => {
+    const text = String(value ?? '');
+    const safeText = /^[\t\r\n ]*[=+\-@]/.test(text) ? `'${text}` : text;
+    return `"${safeText.replace(/"/g, '""')}"`;
+  };
   const rows = [['Order', 'Table', 'Status', 'Handoff', 'Items', 'Note', 'Total', 'Placed at']];
   for (const order of orders) {
     rows.push([
@@ -621,10 +652,10 @@ app.patch('/api/admin/orders/:id', requireAdmin, (req, res, next) => {
 
 /* Admin Service Requests (Call Waiter / Table Assistance Queue) */
 app.get('/api/admin/service-requests', requireAdmin, (req, res) => {
-  const requests = (db.serviceRequests || [])
+  const requests = [...(db.serviceRequests || [])]
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, 100);
-  res.json({ serviceRequests: requests, serverTime: new Date().toISOString() });
+  res.json({ serviceRequests: requests.map((request) => publicServiceRequest(request)), serverTime: new Date().toISOString() });
 });
 
 app.patch('/api/admin/service-requests/:id', requireAdmin, (req, res, next) => {
@@ -632,13 +663,14 @@ app.patch('/api/admin/service-requests/:id', requireAdmin, (req, res, next) => {
     db.serviceRequests = db.serviceRequests || [];
     const request = db.serviceRequests.find((entry) => entry.id === req.params.id);
     if (!request) throw new HttpError(404, 'Service request not found.');
-    const status = (req.body && req.body.status) || 'resolved';
+    const status = req.body && req.body.status;
+    if (!['pending', 'resolved'].includes(status)) throw new HttpError(400, 'Unknown service request status.');
     request.status = status;
     if (status === 'resolved') {
       request.resolvedAt = new Date().toISOString();
     }
     saveDb();
-    res.json({ serviceRequest: request });
+    res.json({ serviceRequest: publicServiceRequest(request) });
   } catch (err) {
     next(err);
   }
@@ -737,10 +769,16 @@ function readItemBody(body, existing) {
     }
     item.dietary = dietary || inferDietaryFromTag(item.tag);
   }
-  if (body.available !== undefined) item.available = Boolean(body.available);
+  if (body.available !== undefined) {
+    if (typeof body.available !== 'boolean') throw new HttpError(400, 'Availability must be true or false.');
+    item.available = body.available;
+  }
   if (body.sort !== undefined) {
     const sort = Number(body.sort);
-    if (Number.isFinite(sort)) item.sort = sort;
+    if (!Number.isInteger(sort) || sort < 0 || sort > 10000) {
+      throw new HttpError(400, 'Please enter a valid item position.');
+    }
+    item.sort = sort;
   }
 
   function inferDietaryFromTag(tag) {
@@ -947,8 +985,8 @@ app.use((err, req, res, next) => {
 /* ------------------------------------------------------------------ */
 
 function listenOnPort(port) {
-  if (NODE_ENV === 'production' && !process.env.ADMIN_PIN) {
-    console.error('Refusing to start in production: set ADMIN_PIN to a strong PIN.');
+  if (NODE_ENV === 'production' && ADMIN_PIN.length < MIN_ADMIN_PIN_LENGTH) {
+    console.error(`Refusing to start in production: set ADMIN_PIN to at least ${MIN_ADMIN_PIN_LENGTH} characters.`);
     process.exit(1);
   }
   const server = app.listen(port, HOST, () => {

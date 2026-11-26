@@ -80,6 +80,34 @@
     }, 3200);
   }
 
+  function serviceTokenKey(table) {
+    return `qr_service_token_${table}`;
+  }
+
+  function getServiceToken(table) {
+    try {
+      return window.sessionStorage.getItem(serviceTokenKey(table));
+    } catch {
+      return null;
+    }
+  }
+
+  function setServiceToken(table, token) {
+    try {
+      window.sessionStorage.setItem(serviceTokenKey(table), token);
+    } catch {
+      showToast('Request sent, but this browser cannot save its status token.', 'error');
+    }
+  }
+
+  function clearServiceToken(table) {
+    try {
+      window.sessionStorage.removeItem(serviceTokenKey(table));
+    } catch {
+      // Storage may be unavailable in private browsing; no sensitive data is exposed.
+    }
+  }
+
   function getUrlTable() {
     const params = new URLSearchParams(window.location.search);
     const t = parseInt(params.get('table'), 10);
@@ -150,7 +178,10 @@
 
       renderMenu();
     } catch (err) {
-      menuContent.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--red);">${err.message}</div>`;
+      const errorMessage = document.createElement('div');
+      errorMessage.style.cssText = 'text-align:center; padding: 40px; color: var(--red);';
+      errorMessage.textContent = err.message;
+      menuContent.replaceChildren(errorMessage);
       showToast('Error loading menu: ' + err.message, 'error');
     }
   }
@@ -173,7 +204,7 @@
   function renderMenu() {
     if (!menuData) return;
     if (dishDialogOverlay.classList.contains('active')) closeDishDialog(false);
-    const currency = (menuData.restaurant && menuData.restaurant.currency) || '₹';
+    const currency = escapeHtml((menuData.restaurant && menuData.restaurant.currency) || '₹');
     stopConveyor();
     const matchingItems = menuData.items.filter((item) => {
       if (searchTerm) {
@@ -346,7 +377,7 @@
     const item = lane.items[index];
     if (!caption || !item || lane.state.captionIndex === index) return;
     lane.state.captionIndex = index;
-    const currency = (menuData.restaurant && menuData.restaurant.currency) || '₹';
+    const currency = escapeHtml((menuData.restaurant && menuData.restaurant.currency) || '₹');
     caption.innerHTML = `
       <p class="conveyor-caption-name">${escapeHtml(item.name)} <span class="conveyor-caption-price">· ${currency}${Number(item.price).toFixed(2)}</span></p>
       ${item.description ? `<p class="conveyor-caption-description">${escapeHtml(item.description)}</p>` : ''}
@@ -528,7 +559,7 @@
 
   function updateCartUI() {
     if (!menuData) return;
-    const currency = (menuData.restaurant && menuData.restaurant.currency) || '₹';
+    const currency = escapeHtml((menuData.restaurant && menuData.restaurant.currency) || '₹');
     let totalItems = 0;
     let totalPrice = 0;
 
@@ -544,7 +575,7 @@
       row.className = 'cart-item-row';
       row.innerHTML = `
         <div class="cart-item-info">
-          <div class="cart-item-name">${item.emoji || ''} ${escapeHtml(item.name)}</div>
+          <div class="cart-item-name">${escapeHtml(item.emoji || '')} ${escapeHtml(item.name)}</div>
           <div class="cart-item-price">${currency}${item.price.toFixed(2)} &times; ${qty} = <strong>${currency}${(item.price * qty).toFixed(2)}</strong></div>
         </div>
         <div class="qty-stepper">
@@ -608,8 +639,20 @@
   });
 
   async function checkActiveTableService() {
+    const token = getServiceToken(currentTable);
+    if (!token) {
+      if (waiterActiveStatus) waiterActiveStatus.style.display = 'none';
+      return;
+    }
     try {
-      const res = await fetch(`/api/service-requests?table=${currentTable}`);
+      const res = await fetch(`/api/service-requests?table=${encodeURIComponent(currentTable)}`, {
+        headers: { 'X-Guest-Token': token }
+      });
+      if (res.status === 403) {
+        clearServiceToken(currentTable);
+        if (waiterActiveStatus) waiterActiveStatus.style.display = 'none';
+        return;
+      }
       if (!res.ok) return;
       const data = await res.json();
       const pending = (data.serviceRequests || []).filter(r => r.status === 'pending');
@@ -617,10 +660,13 @@
         const latest = pending[0];
         waiterActiveStatus.style.display = 'flex';
         waiterActiveStatus.innerHTML = `<span>⏳ Request Pending: Staff alerted for <strong>${escapeHtml(latest.type)}</strong>. Someone is on their way!</span>`;
-      } else if (waiterActiveStatus) {
-        waiterActiveStatus.style.display = 'none';
+      } else {
+        clearServiceToken(currentTable);
+        if (waiterActiveStatus) waiterActiveStatus.style.display = 'none';
       }
-    } catch {}
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   if (submitWaiterBtn) {
@@ -639,6 +685,10 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to send request.');
+        if (!data.serviceRequest || typeof data.serviceRequest.guestToken !== 'string') {
+          throw new Error('The request was sent, but its status could not be confirmed.');
+        }
+        setServiceToken(currentTable, data.serviceRequest.guestToken);
 
         showToast(`Staff notified! Team member dispatched to Table ${currentTable}.`, 'success');
         if (waiterNote) waiterNote.value = '';

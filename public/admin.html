@@ -179,10 +179,10 @@
     <div class="modal-card" style="max-width: 380px; text-align: center;">
       <div style="font-size: 40px; margin-bottom: 8px;">🔐</div>
       <h3 class="modal-title" style="margin-bottom: 6px;">Staff Passcode</h3>
-      <p style="font-size: 13.5px; color: var(--muted); margin-bottom: 20px;">Enter your staff dashboard PIN (Default: <strong>2468</strong>)</p>
+      <p style="font-size: 13.5px; color: var(--muted); margin-bottom: 20px;">Sign in with your staff passcode. Production passcodes must be at least 12 characters.</p>
       <form id="loginForm">
         <div class="form-group">
-          <input type="password" id="pinInput" class="form-input" placeholder="Enter PIN" style="font-size: 22px; text-align: center; letter-spacing: 0.3em; padding: 12px;" required autofocus autocomplete="current-password">
+          <input type="password" id="pinInput" class="form-input" placeholder="Enter passcode" maxlength="128" style="font-size: 22px; text-align: center; padding: 12px;" required autofocus autocomplete="current-password">
         </div>
         <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 8px;" id="loginBtn">Sign In</button>
       </form>

@@ -543,7 +543,7 @@
           <span class="alert-time">(${formatElapsed(req.createdAt)})</span>
         </div>
         <div class="alert-actions">
-          <button class="btn btn-primary btn-sm" data-action="resolve-service-request" data-request-id="${req.id}" style="background: var(--green);">✅ Mark Resolved</button>
+          <button class="btn btn-primary btn-sm" data-action="resolve-service-request" data-request-id="${escapeHtml(req.id)}" style="background: var(--green);">✅ Mark Resolved</button>
         </div>
       </div>
     `).join('');
@@ -587,7 +587,7 @@
 
           <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
             ${isPending ? `
-              <button class="btn btn-primary btn-sm" data-action="resolve-service-request" data-request-id="${req.id}" style="background: var(--green);">
+              <button class="btn btn-primary btn-sm" data-action="resolve-service-request" data-request-id="${escapeHtml(req.id)}" style="background: var(--green);">
                 ✅ Resolve Request
               </button>
             ` : `<span style="font-size: 12.5px; color: var(--green); font-weight: 600;">✓ Completed</span>`}
@@ -705,14 +705,14 @@
             <span style="font-size: 13px; color: var(--muted); margin-left: 8px;">(${catItems.length} items)</span>
           </div>
           <div style="display: flex; gap: 8px;">
-            <button class="btn btn-outline btn-sm" data-action="edit-category" data-category-id="${cat.id}" data-category-name="${escapeHtml(cat.name)}">Edit Name</button>
-            <button class="btn btn-outline btn-sm btn-danger" data-action="delete-category" data-category-id="${cat.id}">Delete</button>
+            <button class="btn btn-outline btn-sm" data-action="edit-category" data-category-id="${escapeHtml(cat.id)}" data-category-name="${escapeHtml(cat.name)}">Edit Name</button>
+            <button class="btn btn-outline btn-sm btn-danger" data-action="delete-category" data-category-id="${escapeHtml(cat.id)}">Delete</button>
           </div>
         </div>
-        <div class="menu-items-list" id="cat-items-${cat.id}"></div>
+        <div class="menu-items-list" id="cat-items-${escapeHtml(cat.id)}"></div>
       `;
 
-      const itemsListEl = group.querySelector(`#cat-items-${cat.id}`);
+      const itemsListEl = group.querySelector('.menu-items-list');
 
       if (catItems.length === 0) {
         itemsListEl.innerHTML = `<div style="padding: 16px 20px; font-size: 13.5px; color: var(--muted);">No dishes in this category yet. Click "+ Add Dish" above.</div>`;
@@ -722,7 +722,7 @@
           row.className = 'menu-item-row';
           row.innerHTML = `
             <div class="item-left">
-              <div class="item-row-emoji">${item.emoji || '🍽️'}</div>
+              <div class="item-row-emoji">${escapeHtml(item.emoji || '🍽️')}</div>
               <div>
                 <div style="font-weight: 700; font-size: 15px; color: var(--ink);">
                   ${escapeHtml(item.name)}
@@ -735,11 +735,11 @@
             <div style="display: flex; align-items: center; gap: 16px;">
               <span style="font-weight: 700; font-size: 15px;">₹${Number(item.price).toFixed(2)}</span>
               <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
-                <input type="checkbox" data-action="toggle-item-stock" data-item-id="${item.id}" ${item.available ? 'checked' : ''}>
+                <input type="checkbox" data-action="toggle-item-stock" data-item-id="${escapeHtml(item.id)}" ${item.available ? 'checked' : ''}>
                 <span>${item.available ? 'Available to order' : 'Sold Out'}</span>
               </label>
-              <button class="btn btn-outline btn-sm" data-action="edit-item" data-item-id="${item.id}">Edit</button>
-              <button class="btn btn-outline btn-sm btn-danger" data-action="delete-item" data-item-id="${item.id}">&times;</button>
+              <button class="btn btn-outline btn-sm" data-action="edit-item" data-item-id="${escapeHtml(item.id)}">Edit</button>
+              <button class="btn btn-outline btn-sm btn-danger" data-action="delete-item" data-item-id="${escapeHtml(item.id)}">&times;</button>
             </div>
           `;
           itemsListEl.appendChild(row);
