@@ -139,6 +139,43 @@
     }, 3200);
   }
 
+  document.addEventListener('click', (event) => {
+    const target = event.target instanceof Element ? event.target.closest('[data-action]') : null;
+    if (!target) return;
+    const { action, orderId, status, handoff, requestId, categoryId, categoryName, itemId, url, table } = target.dataset;
+    switch (action) {
+      case 'update-order-status':
+        window.updateOrderStatus(orderId, status, handoff);
+        break;
+      case 'resolve-service-request':
+        window.resolveServiceRequest(requestId);
+        break;
+      case 'edit-category':
+        window.editCategory(categoryId, categoryName);
+        break;
+      case 'delete-category':
+        window.deleteCategory(categoryId);
+        break;
+      case 'edit-item':
+        window.editItem(itemId);
+        break;
+      case 'delete-item':
+        window.deleteItem(itemId);
+        break;
+      case 'copy-qr-link':
+        window.copyQrLink(url);
+        break;
+      case 'download-qr-svg':
+        window.downloadQrSvg(Number(table));
+        break;
+    }
+  });
+
+  document.addEventListener('change', (event) => {
+    const target = event.target instanceof Element ? event.target.closest('[data-action="toggle-item-stock"]') : null;
+    if (target) window.toggleItemStock(target.dataset.itemId, target.checked);
+  });
+
   // Authentication check
   async function checkSession() {
     try {
@@ -352,24 +389,30 @@
           <strong>Note:</strong> ${escapeHtml(order.note)}
         </div>
       ` : '';
+      const handoffNoteHtml = order.status === 'ready' && order.handoff === 'pickup'
+        ? '<p style="font-size: 12.5px; color: var(--muted); margin: 10px 0;">The guest tracking page now asks them to collect at the counter. Call or announce the order if they are not watching it.</p>'
+        : '';
 
       const timeAgo = formatElapsed(order.createdAt);
 
       let actionButtons = '';
       if (order.status === 'new') {
         actionButtons = `
-          <button class="btn btn-outline btn-sm btn-danger" onclick="window.updateOrderStatus('${order.id}', 'cancelled')">Cancel</button>
-          <button class="btn btn-primary btn-sm" onclick="window.updateOrderStatus('${order.id}', 'preparing')">🍳 Start Cooking</button>
+          <button class="btn btn-outline btn-sm btn-danger" data-action="update-order-status" data-order-id="${order.id}" data-status="cancelled">Cancel</button>
+          <button class="btn btn-primary btn-sm" data-action="update-order-status" data-order-id="${order.id}" data-status="preparing">🍳 Start Cooking</button>
         `;
       } else if (order.status === 'preparing') {
         actionButtons = `
-          <button class="btn btn-outline btn-sm btn-danger" onclick="window.updateOrderStatus('${order.id}', 'cancelled')">Cancel</button>
-          <button class="btn btn-primary btn-sm" onclick="window.updateOrderStatus('${order.id}', 'ready')" style="background: var(--amber);">🔔 Mark Ready</button>
+          <button class="btn btn-outline btn-sm btn-danger" data-action="update-order-status" data-order-id="${order.id}" data-status="cancelled">Cancel</button>
+          <button class="btn btn-primary btn-sm" data-action="update-order-status" data-order-id="${order.id}" data-status="ready" style="background: var(--amber);">🔔 Mark Ready</button>
         `;
       } else if (order.status === 'ready') {
-        actionButtons = `
-          <button class="btn btn-primary btn-sm" onclick="window.updateOrderStatus('${order.id}', 'completed')" style="background: var(--green);">✅ Mark Served</button>
-        `;
+        actionButtons = order.handoff === 'pickup'
+          ? `<button class="btn btn-primary btn-sm" data-action="update-order-status" data-order-id="${order.id}" data-status="completed" data-handoff="pickup" style="background: var(--green);">✅ Mark Collected</button>`
+          : `
+            <button class="btn btn-primary btn-sm" data-action="update-order-status" data-order-id="${order.id}" data-status="completed" data-handoff="table" style="background: var(--green);">🍽️ Serve at Table</button>
+            <button class="btn btn-outline btn-sm" data-action="update-order-status" data-order-id="${order.id}" data-status="ready" data-handoff="pickup">📣 Ask Guest to Collect</button>
+          `;
       } else {
         actionButtons = `
           <span style="font-size: 12.5px; color: var(--muted); text-transform: capitalize;">${order.status}</span>
@@ -385,24 +428,17 @@
           </div>
           <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
             <span class="badge badge-status status-${order.status}">${order.status}</span>
-            ${order.paymentStatus === 'paid'
-              ? `<span class="badge badge-paid">✅ PAID (${escapeHtml((order.paymentMethod || 'cash').toUpperCase())})</span>`
-              : order.paymentStatus === 'pending_verification'
-              ? `<span class="badge badge-pending-pay">⚠️ VERIFY ${(order.paymentMethod || 'upi').toUpperCase()}</span>`
-              : `<span class="badge badge-unpaid">⏳ ${(order.paymentMethod || 'cash').toUpperCase()} (UNPAID)</span>`
-            }
+            ${order.handoff === 'pickup' ? '<span class="badge">Guest pickup</span>' : order.handoff === 'table' ? '<span class="badge">Table service</span>' : ''}
           </div>
         </div>
 
         <ul class="order-items-list">${itemsHtml}</ul>
         ${noteHtml}
+        ${handoffNoteHtml}
 
         <div class="order-card-footer">
           <span class="order-total-amount">Total: ₹${Number(order.total).toFixed(2)}</span>
           <div class="order-actions" style="display: flex; align-items: center; gap: 8px;">
-            <button class="btn-pay-toggle" onclick="window.toggleOrderPayment('${order.id}', '${order.paymentStatus === 'paid' ? 'pending' : 'paid'}')">
-              ${order.paymentStatus === 'paid' ? 'Mark Unpaid' : '💵 Verify & Mark Paid'}
-            </button>
             ${actionButtons}
           </div>
         </div>
@@ -411,22 +447,6 @@
       ordersContainer.appendChild(card);
     }
   }
-
-  window.toggleOrderPayment = async function(orderId, nextPaymentStatus) {
-    try {
-      const res = await fetch(`/api/admin/orders/${encodeURIComponent(orderId)}/payment`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentStatus: nextPaymentStatus })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to update payment status.');
-      showToast(`Order #${data.order.code} payment marked as ${nextPaymentStatus}.`, 'success');
-      fetchOrders();
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
-  };
 
   /* ------------------------------------------------------------- */
   /*  Service Requests Functions (Call Waiter)                     */
@@ -494,7 +514,7 @@
           <span class="alert-time">(${formatElapsed(req.createdAt)})</span>
         </div>
         <div class="alert-actions">
-          <button class="btn btn-primary btn-sm" onclick="window.resolveServiceRequest('${req.id}')" style="background: var(--green);">✅ Mark Resolved</button>
+          <button class="btn btn-primary btn-sm" data-action="resolve-service-request" data-request-id="${req.id}" style="background: var(--green);">✅ Mark Resolved</button>
         </div>
       </div>
     `).join('');
@@ -538,7 +558,7 @@
 
           <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
             ${isPending ? `
-              <button class="btn btn-primary btn-sm" onclick="window.resolveServiceRequest('${req.id}')" style="background: var(--green);">
+              <button class="btn btn-primary btn-sm" data-action="resolve-service-request" data-request-id="${req.id}" style="background: var(--green);">
                 ✅ Resolve Request
               </button>
             ` : `<span style="font-size: 12.5px; color: var(--green); font-weight: 600;">✓ Completed</span>`}
@@ -564,16 +584,23 @@
     }
   };
 
-  window.updateOrderStatus = async function(orderId, nextStatus) {
+  window.updateOrderStatus = async function(orderId, nextStatus, handoff) {
     try {
       const res = await fetch(`/api/admin/orders/${encodeURIComponent(orderId)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: nextStatus })
+        body: JSON.stringify({ status: nextStatus, handoff })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update order status.');
-      showToast(`Order #${data.order.code} updated to ${nextStatus}.`, 'success');
+      const message = handoff === 'table'
+        ? `Order #${data.order.code} served at the table.`
+        : handoff === 'pickup' && nextStatus === 'ready'
+        ? `Order #${data.order.code} is ready for guest pickup.`
+        : handoff === 'pickup'
+        ? `Order #${data.order.code} marked collected.`
+        : `Order #${data.order.code} updated to ${nextStatus}.`;
+      showToast(message, 'success');
       fetchOrders();
     } catch (err) {
       showToast(err.message, 'error');
@@ -649,8 +676,8 @@
             <span style="font-size: 13px; color: var(--muted); margin-left: 8px;">(${catItems.length} items)</span>
           </div>
           <div style="display: flex; gap: 8px;">
-            <button class="btn btn-outline btn-sm" onclick="window.editCategory('${cat.id}', '${escapeHtml(cat.name)}')">Edit Name</button>
-            <button class="btn btn-outline btn-sm btn-danger" onclick="window.deleteCategory('${cat.id}')">Delete</button>
+            <button class="btn btn-outline btn-sm" data-action="edit-category" data-category-id="${cat.id}" data-category-name="${escapeHtml(cat.name)}">Edit Name</button>
+            <button class="btn btn-outline btn-sm btn-danger" data-action="delete-category" data-category-id="${cat.id}">Delete</button>
           </div>
         </div>
         <div class="menu-items-list" id="cat-items-${cat.id}"></div>
@@ -679,11 +706,11 @@
             <div style="display: flex; align-items: center; gap: 16px;">
               <span style="font-weight: 700; font-size: 15px;">₹${Number(item.price).toFixed(2)}</span>
               <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
-                <input type="checkbox" ${item.available ? 'checked' : ''} onchange="window.toggleItemStock('${item.id}', this.checked)">
-                <span>${item.available ? 'Available' : 'Sold Out'}</span>
+                <input type="checkbox" data-action="toggle-item-stock" data-item-id="${item.id}" ${item.available ? 'checked' : ''}>
+                <span>${item.available ? 'Available to order' : 'Sold Out'}</span>
               </label>
-              <button class="btn btn-outline btn-sm" onclick="window.editItem('${item.id}')">Edit</button>
-              <button class="btn btn-outline btn-sm btn-danger" onclick="window.deleteItem('${item.id}')">&times;</button>
+              <button class="btn btn-outline btn-sm" data-action="edit-item" data-item-id="${item.id}">Edit</button>
+              <button class="btn btn-outline btn-sm btn-danger" data-action="delete-item" data-item-id="${item.id}">&times;</button>
             </div>
           `;
           itemsListEl.appendChild(row);
@@ -864,8 +891,8 @@
           <div class="qr-table-num">Table ${t.table}</div>
           <div class="qr-table-url">${escapeHtml(t.url)}</div>
           <div style="display: flex; justify-content: center; gap: 8px;">
-            <button class="btn btn-outline btn-sm" onclick="window.copyQrLink('${escapeHtml(t.url)}')">📋 Copy URL</button>
-            <button class="btn btn-outline btn-sm" onclick="window.downloadQrSvg(${t.table})">⬇️ SVG</button>
+            <button class="btn btn-outline btn-sm" data-action="copy-qr-link" data-url="${escapeHtml(t.url)}">📋 Copy URL</button>
+            <button class="btn btn-outline btn-sm" data-action="download-qr-svg" data-table="${t.table}">⬇️ SVG</button>
           </div>
         `;
         tablesQrContainer.appendChild(card);
@@ -908,8 +935,6 @@
   const settingTagline = document.getElementById('settingTagline');
   const settingCurrency = document.getElementById('settingCurrency');
   const settingTableCount = document.getElementById('settingTableCount');
-  const settingUpiVpa = document.getElementById('settingUpiVpa');
-  const settingUpiPayeeName = document.getElementById('settingUpiPayeeName');
   const settingFooterNote = document.getElementById('settingFooterNote');
 
   async function loadSettings() {
@@ -923,8 +948,6 @@
       settingTagline.value = s.tagline || '';
       settingCurrency.value = s.currency || '₹';
       settingTableCount.value = s.tableCount || 17;
-      if (settingUpiVpa) settingUpiVpa.value = s.upiVpa || 'barbequenation@okaxis';
-      if (settingUpiPayeeName) settingUpiPayeeName.value = s.upiPayeeName || s.restaurantName || '';
       settingFooterNote.value = s.footerNote || '';
 
       document.title = `${s.restaurantName} — Staff Dashboard`;
@@ -941,8 +964,6 @@
       tagline: settingTagline.value.trim(),
       currency: settingCurrency.value.trim(),
       tableCount: parseInt(settingTableCount.value, 10),
-      upiVpa: settingUpiVpa ? settingUpiVpa.value.trim() : undefined,
-      upiPayeeName: settingUpiPayeeName ? settingUpiPayeeName.value.trim() : undefined,
       footerNote: settingFooterNote.value.trim()
     };
 

@@ -19,12 +19,14 @@
   - Direct order submission to kitchen (zero app download required).
 
 - **🔔 Live Guest Order Tracking (`/order?id=...`)**:
-  - Real-time milestone stepper (`Received` → `Cooking` → `Ready` → `Served`).
+  - Real-time milestone stepper (`Received` → `Cooking` → `Ready` → `Handed over`).
   - Auto-polling keeps guests updated without manual page refreshes.
   - Guest order cancellation before preparation begins.
+  - When an order is ready, staff can serve it at the table or ask the guest to collect it at the counter. Pickup instructions appear on the guest tracking page.
+  - Payment is handled directly with restaurant staff; the app does not collect or verify payments.
 
 - **👨‍🍳 Staff Operations Dashboard (`/admin`)**:
-  - Protected with staff PIN authentication (Default: `2468`).
+  - Protected with staff PIN authentication (development default: `2468`; production requires `ADMIN_PIN`).
   - **Live Orders Queue**: Instant order cards with elapsed timers, highlighted kitchen instructions, and one-click status transitions.
   - **Synthesized Kitchen Audio Chime**: Audible alert using Web Audio API when a new table order arrives.
   - **Menu Management**: Full CRUD for dishes & categories with instantaneous "In Stock / Sold Out" toggles.
@@ -83,19 +85,16 @@ Feel free to tweak colors, fonts, or animations to match any restaurant brand!
 
 ---
 
-## ☁️ Deploy Free to the Cloud (Live Demo Link)
+## ☁️ Deploy a Free Render Demo
 
-To share this sample with clients or employers worldwide without running it locally, deploy it to **Render** or **Railway** for free:
+The included `render.yaml` configures a free Render web service for presenting this prototype:
 
-### Deploy to Render (Recommended)
-1. Push this repository to your GitHub account.
-2. Go to [Render.com](https://render.com) and create a free account.
-3. Click **New +** → **Web Service** and select your GitHub repository.
-4. Set the following settings:
-   - **Environment**: `Node`
-   - **Build Command**: `npm install`
-   - **Start Command**: `node server.js`
-5. Click **Deploy Web Service**. Render gives you a free HTTPS live URL (e.g. `https://qr-restaurant-demo.onrender.com`)!
+1. Push the repository to GitHub.
+2. In [Render](https://render.com), choose **New + → Blueprint** and select the repository.
+3. When prompted, set `ADMIN_PIN` to a strong private PIN, then deploy the Blueprint.
+4. Open the Render service URL. QR codes use Render's external URL automatically; set `PUBLIC_URL` only if you use a custom domain.
+
+**Free-demo limitations:** Render free web services sleep after 15 minutes without traffic and can take about a minute to wake. Their filesystem is temporary, so menu edits and orders can be lost when the service sleeps, restarts, or redeploys. Use this free setup for a demo only, not for restaurant operations or customer order records. Durable data requires a paid Render service with persistent storage or a separate database.
 
 ---
 
@@ -104,6 +103,7 @@ To share this sample with clients or employers worldwide without running it loca
 ```text
 qr-restaurant/
 ├── server.js              # Express REST API, QR generator & state
+├── render.yaml            # Free Render demo service configuration
 ├── package.json           # Dependencies (express, qrcode)
 ├── README.md              # Documentation & guides
 ├── data/
@@ -118,6 +118,7 @@ qr-restaurant/
     │   ├── menu.css       # Guest menu & cart styles
     │   └── admin.css      # Staff dashboard styles
     └── js/
+        ├── index.js        # Landing page & table QR interactions
         ├── menu.js        # Guest cart & order submission
         ├── order.js       # Live order polling & status stepper
         └── admin.js       # Live order board, chime & menu CRUD

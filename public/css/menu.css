@@ -616,6 +616,20 @@
   font-size: 13px;
 }
 
+.conveyor-caption-availability {
+  margin-top: 5px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.conveyor-caption-availability.is-available {
+  color: var(--green);
+}
+
+.conveyor-caption-availability.is-unavailable {
+  color: var(--red);
+}
+
 .conveyor-empty {
   padding: 54px 18px;
   color: var(--muted);

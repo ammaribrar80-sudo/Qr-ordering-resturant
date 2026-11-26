@@ -102,7 +102,7 @@
       <div class="menu-mgmt-header">
         <div>
           <h2 style="font-family: var(--font-serif); font-size: 24px;">Menu &amp; Categories</h2>
-          <p style="font-size: 14px; color: var(--muted);">Manage dishes, live stock availability, and categories</p>
+          <p style="font-size: 14px; color: var(--muted);">Set availability to match current kitchen stock; guests see whether each dish can be ordered.</p>
         </div>
         <div style="display: flex; gap: 10px;">
           <button class="btn btn-outline btn-sm" id="addCategoryBtn">+ New Category</button>
@@ -156,15 +156,6 @@
           <div class="form-group">
             <label class="form-label" for="settingTableCount">Number of Tables (1 - 100)</label>
             <input type="number" id="settingTableCount" class="form-input" min="1" max="100" style="max-width: 140px;" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="settingUpiVpa">UPI ID (VPA) for PhonePe / GPay / Paytm</label>
-            <input type="text" id="settingUpiVpa" class="form-input" placeholder="e.g. yourbusiness@okaxis or 9876543210@ybl">
-            <span style="font-size: 12px; color: var(--muted); margin-top: 4px; display: block;">Enter your active registered UPI ID. UPI apps like PhonePe verify this with NPCI servers in real-time.</span>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="settingUpiPayeeName">UPI Business / Payee Display Name</label>
-            <input type="text" id="settingUpiPayeeName" class="form-input" placeholder="e.g. Barbeque Nation">
           </div>
           <div class="form-group">
             <label class="form-label" for="settingFooterNote">Footer Allergy &amp; Legal Note</label>
@@ -235,7 +226,7 @@
         </div>
         <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
           <input type="checkbox" id="itemAvailable" checked style="width: 18px; height: 18px;">
-          <label for="itemAvailable" style="font-size: 14px; font-weight: 600;">In Stock &amp; Available</label>
+          <label for="itemAvailable" style="font-size: 14px; font-weight: 600;">Available to order</label>
         </div>
         <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Save Dish</button>
       </form>

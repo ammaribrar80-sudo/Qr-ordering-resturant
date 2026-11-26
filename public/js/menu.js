@@ -307,6 +307,7 @@
     caption.innerHTML = `
       <p class="conveyor-caption-name">${escapeHtml(item.name)} <span class="conveyor-caption-price">· ${currency}${Number(item.price).toFixed(2)}</span></p>
       ${item.description ? `<p class="conveyor-caption-description">${escapeHtml(item.description)}</p>` : ''}
+      <p class="conveyor-caption-availability ${item.available ? 'is-available' : 'is-unavailable'}">${item.available ? 'Available to order now' : 'Currently sold out'}</p>
     `;
   }
 
@@ -407,7 +408,7 @@
     dishDialogPlate.style.setProperty('--plate-ring', dishTierColor(item));
     dishDialogDescription.textContent = item.description || 'Freshly prepared by our kitchen.';
     const dietaryDetail = item.dietary && item.dietary.toLowerCase() !== (item.tag || '').toLowerCase() ? item.dietary : '';
-    dishDialogDetails.innerHTML = [item.tag, dietaryDetail, item.available ? 'Available' : 'Sold out']
+    dishDialogDetails.innerHTML = [item.tag, dietaryDetail, item.available ? 'Available to order now' : 'Currently sold out']
       .filter(Boolean)
       .map((detail) => `<span class="dish-dialog-detail">${escapeHtml(detail)}</span>`)
       .join('');
@@ -477,6 +478,11 @@
     updateCartUI();
   };
 
+  cartItemsList.addEventListener('click', (event) => {
+    const target = event.target instanceof Element ? event.target.closest('[data-quantity-change]') : null;
+    if (target) window.updateItemQty(target.dataset.itemId, Number(target.dataset.quantityChange));
+  });
+
   function updateCartUI() {
     if (!menuData) return;
     const currency = (menuData.restaurant && menuData.restaurant.currency) || '₹';
@@ -499,9 +505,9 @@
           <div class="cart-item-price">${currency}${item.price.toFixed(2)} &times; ${qty} = <strong>${currency}${(item.price * qty).toFixed(2)}</strong></div>
         </div>
         <div class="qty-stepper">
-          <button class="qty-btn" onclick="window.updateItemQty('${item.id}', -1)">&minus;</button>
+          <button type="button" class="qty-btn" data-item-id="${escapeHtml(item.id)}" data-quantity-change="-1" aria-label="Remove one ${escapeHtml(item.name)}">&minus;</button>
           <span class="qty-count">${qty}</span>
-          <button class="qty-btn" onclick="window.updateItemQty('${item.id}', 1)">&plus;</button>
+          <button type="button" class="qty-btn" data-item-id="${escapeHtml(item.id)}" data-quantity-change="1" aria-label="Add one ${escapeHtml(item.name)}">&plus;</button>
         </div>
       `;
       cartItemsList.appendChild(row);
@@ -622,8 +628,7 @@
     const orderPayload = {
       table: currentTable,
       items: Array.from(cart.entries()).map(([id, qty]) => ({ id, qty })),
-      note: orderNote.value.trim(),
-      paymentMethod: 'counter'
+      note: orderNote.value.trim()
     };
 
     try {
@@ -641,7 +646,7 @@
       showToast('Order placed successfully! Sending to kitchen...', 'success');
       cart.clear();
       setTimeout(() => {
-        window.location.href = `/order?id=${data.order.id}`;
+        window.location.href = `/order?id=${encodeURIComponent(data.order.id)}&token=${encodeURIComponent(data.order.guestToken)}`;
       }, 600);
 
     } catch (err) {

@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: qr-ordering-restaurant
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ADMIN_PIN
+        sync: false
