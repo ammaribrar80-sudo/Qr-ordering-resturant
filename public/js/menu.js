@@ -12,6 +12,7 @@
   let dishDialogLaneId = null;
   let previousDishFocus = null;
   let resumeBeltAfterDialog = false;
+  let restaurantIsClosed = false;
 
   // DOM Elements
   const restaurantNameEl = document.getElementById('restaurantName');
@@ -21,6 +22,7 @@
   const changeTableBtn = document.getElementById('changeTableBtn');
   const searchInput = document.getElementById('searchInput');
   const menuContent = document.getElementById('menuContent');
+  const restaurantClosedScreen = document.getElementById('restaurantClosedScreen');
   const dishDialogOverlay = document.getElementById('dishDialogOverlay');
   const dishDialogCard = dishDialogOverlay.querySelector('[role="dialog"]');
   const dishDialogClose = document.getElementById('dishDialogClose');
@@ -94,12 +96,38 @@
     window.history.replaceState({}, '', url);
   }
 
+  function setRestaurantClosed(isClosed) {
+    restaurantIsClosed = isClosed;
+    restaurantClosedScreen.hidden = !isClosed;
+    document.documentElement.classList.toggle('restaurant-is-closed', isClosed);
+    document.body.classList.toggle('restaurant-is-closed', isClosed);
+    Array.from(document.body.children).forEach((element) => {
+      if (element !== restaurantClosedScreen && element.tagName !== 'SCRIPT') {
+        element.inert = isClosed;
+      }
+    });
+    if (!isClosed) return;
+
+    cart.clear();
+    updateCartUI();
+    cartDrawerOverlay.classList.remove('active');
+    waiterModal.classList.remove('active');
+    tableModal.classList.remove('active');
+    if (dishDialogOverlay.classList.contains('active')) closeDishDialog(false);
+    document.title = 'We’re closed — Barbeque Nation';
+  }
+
   // Load Menu from API
   async function loadMenu() {
     try {
       const res = await fetch('/api/menu');
       if (!res.ok) throw new Error('Could not load menu.');
       menuData = await res.json();
+      if (menuData.orderingOpen === false) {
+        setRestaurantClosed(true);
+        return;
+      }
+      setRestaurantClosed(false);
 
       // Populate Restaurant Details
       if (menuData.restaurant) {
@@ -124,6 +152,21 @@
     } catch (err) {
       menuContent.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--red);">${err.message}</div>`;
       showToast('Error loading menu: ' + err.message, 'error');
+    }
+  }
+
+  async function checkOrderingStatus() {
+    try {
+      const res = await fetch('/api/ordering-status');
+      if (!res.ok) throw new Error('Could not refresh restaurant status.');
+      const data = await res.json();
+      if (!data.orderingOpen) {
+        setRestaurantClosed(true);
+      } else if (restaurantIsClosed) {
+        await loadMenu();
+      }
+    } catch (err) {
+      console.error(err);
     }
   }
 
@@ -768,5 +811,6 @@
   // Initialize
   setTable(getUrlTable());
   loadMenu();
+  window.setInterval(checkOrderingStatus, 10000);
 
 })();

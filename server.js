@@ -26,6 +26,7 @@ const DEFAULT_SETTINGS = {
   tagline: 'Live grills & buffet',
   currency: '\u20b9',
   tableCount: 17,
+  orderingOpen: true,
   footerNote: 'Demo menu. Prices in INR. Tell your server about allergies. Independent demo - not affiliated with or endorsed by Barbeque Nation.',
 };
 
@@ -357,6 +358,9 @@ app.get('/api/qr', async (req, res, next) => {
 /* Service Requests (Call Waiter / Table Services) */
 app.post('/api/service-requests', (req, res, next) => {
   try {
+    if (!db.settings.orderingOpen) {
+      throw new HttpError(409, 'Guest ordering is currently closed.');
+    }
     if (!allow(`srv:${req.ip}`, 20, 10 * 60 * 1000)) {
       throw new HttpError(429, 'Too many requests. Please wait a moment.');
     }
@@ -397,7 +401,11 @@ app.get('/api/service-requests', (req, res) => {
 });
 
 app.get('/api/menu', (req, res) => {
+  if (!db.settings.orderingOpen) {
+    return res.json({ orderingOpen: false, restaurant: publicRestaurant() });
+  }
   res.json({
+    orderingOpen: true,
     restaurant: publicRestaurant(),
     categories: [...db.categories].sort((a, b) => a.sort - b.sort),
     items: [...db.items].sort((a, b) => a.sort - b.sort),
@@ -405,8 +413,15 @@ app.get('/api/menu', (req, res) => {
   });
 });
 
+app.get('/api/ordering-status', (req, res) => {
+  res.json({ orderingOpen: Boolean(db.settings.orderingOpen) });
+});
+
 app.post('/api/orders', (req, res, next) => {
   try {
+    if (!db.settings.orderingOpen) {
+      throw new HttpError(409, 'Guest ordering is currently closed.');
+    }
     if (!allow(`order:${req.ip}`, 15, 10 * 60 * 1000)) {
       throw new HttpError(429, 'Too many orders from this device. Please wait a moment.');
     }
@@ -777,6 +792,20 @@ app.delete('/api/admin/items/:id', requireAdmin, (req, res, next) => {
 
 app.get('/api/admin/settings', requireAdmin, (req, res) => {
   res.json({ settings: { ...db.settings } });
+});
+
+app.patch('/api/admin/ordering-status', requireAdmin, (req, res, next) => {
+  try {
+    const orderingOpen = req.body && req.body.orderingOpen;
+    if (typeof orderingOpen !== 'boolean') {
+      throw new HttpError(400, 'Ordering status must be open or closed.');
+    }
+    db.settings.orderingOpen = orderingOpen;
+    saveDb();
+    res.json({ orderingOpen });
+  } catch (err) {
+    next(err);
+  }
 });
 
 app.patch('/api/admin/settings', requireAdmin, (req, res, next) => {

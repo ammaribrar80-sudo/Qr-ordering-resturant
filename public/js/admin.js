@@ -104,6 +104,8 @@
   const loginForm = document.getElementById('loginForm');
   const pinInput = document.getElementById('pinInput');
   const logoutBtn = document.getElementById('logoutBtn');
+  const orderingState = document.getElementById('orderingState');
+  const orderingToggleBtn = document.getElementById('orderingToggleBtn');
   const chimeToggleBtn = document.getElementById('chimeToggleBtn');
   const chimeIcon = document.getElementById('chimeIcon');
   const chimeLabel = document.getElementById('chimeLabel');
@@ -116,6 +118,14 @@
 
   let serviceRequestsList = [];
   let knownRequestIds = new Set();
+  let guestOrderingOpen = true;
+
+  function renderOrderingStatus() {
+    orderingState.textContent = guestOrderingOpen ? 'Guest ordering is open' : 'Guest ordering is closed';
+    orderingState.classList.toggle('is-closed', !guestOrderingOpen);
+    orderingToggleBtn.textContent = guestOrderingOpen ? 'Close ordering' : 'Open ordering';
+    orderingToggleBtn.disabled = false;
+  }
 
   // Tabs
   const navItems = document.querySelectorAll('.admin-nav-item');
@@ -220,6 +230,25 @@
     if (pollTimer) clearInterval(pollTimer);
     loginModal.classList.add('active');
     showToast('Signed out successfully.');
+  });
+
+  orderingToggleBtn.addEventListener('click', async () => {
+    orderingToggleBtn.disabled = true;
+    try {
+      const res = await fetch('/api/admin/ordering-status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderingOpen: !guestOrderingOpen })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not change guest ordering status.');
+      guestOrderingOpen = data.orderingOpen;
+      renderOrderingStatus();
+      showToast(guestOrderingOpen ? 'Guest ordering is open.' : 'Guest ordering is closed.', 'success');
+    } catch (err) {
+      orderingToggleBtn.disabled = false;
+      showToast(err.message, 'error');
+    }
   });
 
   // Sound chime toggle
@@ -943,6 +972,8 @@
       if (!res.ok) return;
       const data = await res.json();
       const s = data.settings || {};
+      guestOrderingOpen = s.orderingOpen !== false;
+      renderOrderingStatus();
       settingResName.value = s.restaurantName || '';
       settingOutletName.value = s.outletName || '';
       settingTagline.value = s.tagline || '';

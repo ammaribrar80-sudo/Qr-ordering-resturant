@@ -23,6 +23,11 @@
         <span id="tagline" style="display: none;"></span>
       </div>
       <div style="display: flex; align-items: center; gap: 12px;">
+        <a class="menu-home-button" href="/" aria-label="Home">
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="m3.5 10 8.5-7 8.5 7v10a1 1 0 0 1-1 1h-5.5v-6.5h-4V21H4.5a1 1 0 0 1-1-1z"/>
+          </svg>
+        </a>
         <div class="table-badge-card" id="changeTableBtn" role="button" tabindex="0" title="Click to Change Table">
           <span class="table-badge-label">Table</span>
           <div class="table-num-selector-row">
@@ -214,6 +219,13 @@
   </div>
 
   <div class="toast-container" id="toastContainer"></div>
+
+  <section class="restaurant-closed-screen" id="restaurantClosedScreen" hidden role="status" aria-live="polite">
+    <div>
+      <h1>We&rsquo;re closed</h1>
+      <p>Thank you for visiting. Please check back soon.</p>
+    </div>
+  </section>
 
   <script src="/js/menu.js"></script>
 </body>
