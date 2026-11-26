@@ -26,9 +26,10 @@
   - When an order is ready, staff can serve it at the table or ask the guest to collect it at the counter. Pickup instructions appear on the guest tracking page.
   - Payment is handled directly with restaurant staff; the app does not collect or verify payments.
 
-- **👨‍🍳 Staff Operations Dashboard (`/admin`)**:
+- **👨‍🍳 Staff Operations Dashboard**:
   - Protected with staff PIN authentication (development default: `2468`; production requires `ADMIN_PIN`).
-  - Staff portal is not linked from guest-facing pages. Sign-out does not close ordering; staff control guest ordering separately.
+  - The staff page is not linked from guest-facing pages. In production it is served only at the private path configured with `ADMIN_ACCESS_PATH`; `/admin` and `/admin.html` return 404. The PIN remains required; the private path is not a substitute for authentication.
+  - Sign-out does not close ordering; staff control guest ordering separately.
   - **Live Orders Queue**: Instant order cards with elapsed timers, highlighted kitchen instructions, and one-click status transitions.
   - **Synthesized Kitchen Audio Chime**: Audible alert using Web Audio API when a new table order arrives.
   - **Menu Management**: Full CRUD for dishes & categories with instantaneous "In Stock / Sold Out" toggles.
@@ -93,7 +94,7 @@ The included `render.yaml` configures a free Render web service for presenting t
 
 1. Push the repository to GitHub.
 2. In [Render](https://render.com), choose **New + → Blueprint** and select the repository.
-3. When prompted, set `ADMIN_PIN` to a strong private PIN, then deploy the Blueprint.
+3. Set `ADMIN_PIN` to a strong private PIN and `ADMIN_ACCESS_PATH` to a private path such as `/staff-` followed by at least 24 random letters, numbers, underscores, or hyphens, then deploy the Blueprint. Keep the path private; the dashboard still requires the PIN.
 4. Open the Render service URL. QR codes use Render's external URL automatically; set `PUBLIC_URL` only if you use a custom domain.
 
 **Free-demo limitations:** Render free web services sleep after 15 minutes without traffic and can take about a minute to wake. Their filesystem is temporary, so menu edits and orders can be lost when the service sleeps, restarts, or redeploys. Use this free setup for a demo only, not for restaurant operations or customer order records. Durable data requires a paid Render service with persistent storage or a separate database.
