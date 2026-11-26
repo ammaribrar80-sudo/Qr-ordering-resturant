@@ -15,6 +15,7 @@ const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 const NODE_ENV = String(process.env.NODE_ENV || '').toLowerCase();
 const ADMIN_PIN = String(process.env.ADMIN_PIN || (NODE_ENV === 'production' ? '' : '2468'));
+const ADMIN_ACCESS_PATH = String(process.env.ADMIN_ACCESS_PATH || '/admin');
 const SESSION_TTL = 12 * 60 * 60 * 1000;
 const DATA_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'db.json');
@@ -851,7 +852,7 @@ app.get('/api/admin/tables', requireAdmin, async (req, res, next) => {
 
 app.get('/api/admin/qr-sheet', async (req, res, next) => {
   try {
-    if (!sessionFor(req)) return res.redirect('/admin');
+    if (!sessionFor(req)) return res.redirect(ADMIN_ACCESS_PATH);
     const baseUrl = getBaseUrl(req);
     const cards = [];
     for (let table = 1; table <= db.settings.tableCount; table += 1) {
@@ -922,6 +923,14 @@ app.get('/api/admin/qr-sheet', async (req, res, next) => {
 
 /* ---------- Static site & errors ---------- */
 
+app.get(ADMIN_ACCESS_PATH, (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'admin.html'));
+});
+
+if (ADMIN_ACCESS_PATH !== '/admin') {
+  app.get(['/admin', '/admin.html'], (req, res) => res.sendStatus(404));
+}
+
 app.use(express.static(PUBLIC_DIR, { extensions: ['html'], maxAge: 0 }));
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found.' }));
@@ -944,6 +953,10 @@ function listenOnPort(port) {
     console.error('Refusing to start in production: set ADMIN_PIN to a strong PIN.');
     process.exit(1);
   }
+  if (NODE_ENV === 'production' && !/^\/[A-Za-z0-9_-]{24,}$/.test(ADMIN_ACCESS_PATH)) {
+    console.error('Refusing to start in production: set ADMIN_ACCESS_PATH to a private path with at least 24 letters, numbers, underscores, or hyphens after the leading slash.');
+    process.exit(1);
+  }
   const server = app.listen(port, HOST, () => {
     currentPort = server.address().port;
     const configuredPublicUrl = (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || '').trim().replace(/\/+$/, '');
@@ -951,7 +964,7 @@ function listenOnPort(port) {
     const line = '─'.repeat(52);
     console.log(`\n  ${db.settings.restaurantName} is ready\n  ${line}`);
     console.log(`  Menu (this device)   http://localhost:${currentPort}/menu?table=1`);
-    console.log(`  Staff dashboard      http://localhost:${currentPort}/admin`);
+    console.log(`  Staff dashboard      http://localhost:${currentPort}${ADMIN_ACCESS_PATH}`);
     console.log(`  QR / phone address   ${BASE_URL}`);
     console.log(`  Admin PIN            ${process.env.ADMIN_PIN ? 'set via ADMIN_PIN' : '2468  (set ADMIN_PIN to change)'}`);
     if (BASE_URL.includes('localhost')) {
