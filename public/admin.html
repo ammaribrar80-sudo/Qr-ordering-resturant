@@ -43,6 +43,9 @@
       <span>📋 Live Orders</span>
       <span class="counter-badge" id="newOrdersCount" style="display: none;">0</span>
     </div>
+    <div class="admin-nav-item" data-tab="billing">
+      <span>🧾 Billing</span>
+    </div>
     <div class="admin-nav-item" data-tab="requests">
       <span>🛎️ Table Requests</span>
       <span class="counter-badge" id="requestsCount" style="display: none; background: var(--accent);">0</span>
@@ -83,6 +86,33 @@
 
       <div class="orders-grid" id="ordersContainer">
         <div style="text-align: center; grid-column: 1/-1; padding: 40px; color: var(--muted);">Loading orders...</div>
+      </div>
+    </section>
+
+    <!-- Table Billing -->
+    <section id="tab-billing" class="tab-pane" style="display: none;">
+      <div class="menu-mgmt-header">
+        <div>
+          <h2 style="font-family: var(--font-serif); font-size: 24px;">Table billing</h2>
+          <p style="font-size: 14px; color: var(--muted);">Prepare a printable bill from served orders. Corrections keep original orders unchanged and require a staff name and reason; names are recorded as entered, not verified accounts.</p>
+        </div>
+        <button class="btn btn-outline btn-sm" id="refreshBillsBtn" type="button">🔄 Refresh bills</button>
+      </div>
+
+      <div class="billing-layout">
+        <div class="billing-queues">
+          <section aria-labelledby="readyToBillHeading">
+            <h3 class="billing-section-title" id="readyToBillHeading">Ready to bill</h3>
+            <div class="billing-table-list" id="unbilledTables"></div>
+          </section>
+          <section aria-labelledby="billHistoryHeading">
+            <h3 class="billing-section-title" id="billHistoryHeading">Bill history</h3>
+            <div class="billing-history-list" id="billsHistory"></div>
+          </section>
+        </div>
+        <section class="billing-detail" id="billPrintArea" aria-live="polite">
+          <div class="billing-empty">Select a table or bill to review its itemized total.</div>
+        </section>
       </div>
     </section>
 
@@ -158,6 +188,15 @@
           <div class="form-group">
             <label class="form-label" for="settingCurrency">Currency Symbol</label>
             <input type="text" id="settingCurrency" class="form-input" style="max-width: 120px;" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="settingTaxRate">Tax rate (%)</label>
+            <input type="number" id="settingTaxRate" class="form-input" min="0" max="100" step="0.01" value="0" style="max-width: 160px;" required>
+            <small class="form-help">Applied to the item subtotal. Verify the correct rate and treatment for your location.</small>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="settingServiceChargeRate">Service charge (%)</label>
+            <input type="number" id="settingServiceChargeRate" class="form-input" min="0" max="100" step="0.01" value="0" style="max-width: 160px;" required>
           </div>
           <div class="form-group">
             <label class="form-label" for="settingTableCount">Number of Tables (1 - 100)</label>

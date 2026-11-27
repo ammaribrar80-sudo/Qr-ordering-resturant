@@ -7,6 +7,10 @@
   let ordersList = [];
   let menuCategories = [];
   let menuItems = [];
+  let billsList = [];
+  let eligibleBillOrders = [];
+  let availableBillItems = [];
+  let selectedBillId = null;
   let knownOrderIds = new Set();
   let ordersInitialized = false;   // true after first successful fetch seeds the known set
   let requestsInitialized = false; // true after first successful fetch seeds the known set
@@ -131,6 +135,7 @@
   const navItems = document.querySelectorAll('.admin-nav-item');
   const tabPanes = {
     orders: document.getElementById('tab-orders'),
+    billing: document.getElementById('tab-billing'),
     requests: document.getElementById('tab-requests'),
     menu: document.getElementById('tab-menu'),
     tables: document.getElementById('tab-tables'),
@@ -156,6 +161,28 @@
     switch (action) {
       case 'update-order-status':
         window.updateOrderStatus(orderId, status, handoff);
+        break;
+      case 'create-table-bill':
+        createTableBill(Number(table));
+        break;
+      case 'select-bill':
+        selectedBillId = target.dataset.billId;
+        renderBilling();
+        break;
+      case 'update-bill-quantity': {
+        const row = target.closest('.billing-item-row');
+        const quantity = row && row.querySelector('[data-bill-quantity]');
+        if (quantity) updateBillQuantity(target.dataset.lineId, Number(quantity.value));
+        break;
+      }
+      case 'finalize-bill':
+        finalizeBill(target.dataset.billId);
+        break;
+      case 'void-bill':
+        voidBill(target.dataset.billId);
+        break;
+      case 'print-bill':
+        window.print();
         break;
       case 'resolve-service-request':
         window.resolveServiceRequest(requestId);
@@ -293,6 +320,7 @@
     });
 
     if (tab === 'orders') { fetchOrders(); fetchServiceRequests(); }
+    if (tab === 'billing') loadBills();
     if (tab === 'requests') fetchServiceRequests();
     if (tab === 'menu') loadMenuData();
     if (tab === 'tables') loadTables();
@@ -631,10 +659,320 @@
         : `Order #${data.order.code} updated to ${nextStatus}.`;
       showToast(message, 'success');
       fetchOrders();
+      if (currentTab === 'billing') loadBills();
     } catch (err) {
       showToast(err.message, 'error');
     }
   };
+
+  /* ------------------------------------------------------------- */
+  /*  Table billing                                                */
+  /* ------------------------------------------------------------- */
+
+  const unbilledTables = document.getElementById('unbilledTables');
+  const billsHistory = document.getElementById('billsHistory');
+  const billPrintArea = document.getElementById('billPrintArea');
+  const refreshBillsBtn = document.getElementById('refreshBillsBtn');
+
+  if (refreshBillsBtn) refreshBillsBtn.addEventListener('click', () => loadBills());
+
+  async function loadBills() {
+    try {
+      const res = await fetch('/api/admin/bills');
+      if (res.status === 401) {
+        loginModal.classList.add('active');
+        return;
+      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not load bills.');
+      billsList = data.bills || [];
+      eligibleBillOrders = data.eligibleOrders || [];
+      availableBillItems = data.availableItems || [];
+      window.billingCurrency = (data.settings && data.settings.currency) || '₹';
+      if (selectedBillId && !billsList.some((bill) => bill.id === selectedBillId)) selectedBillId = null;
+      renderBilling();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  function renderBilling() {
+    if (!unbilledTables || !billsHistory || !billPrintArea) return;
+    const ordersByTable = new Map();
+    eligibleBillOrders.forEach((order) => {
+      if (!ordersByTable.has(order.table)) ordersByTable.set(order.table, []);
+      ordersByTable.get(order.table).push(order);
+    });
+
+    if (ordersByTable.size === 0) {
+      unbilledTables.innerHTML = '<div class="billing-empty">Completed, unbilled orders will appear here.</div>';
+    } else {
+      unbilledTables.innerHTML = `
+        <label class="form-group">
+        <span class="form-label">Staff name for bill creation</span>
+          <input class="form-input" id="billingCreateStaff" maxlength="60" autocomplete="name" placeholder="Enter your name" required>
+        </label>
+        ${Array.from(ordersByTable.entries()).sort((a, b) => a[0] - b[0]).map(([table, orders]) => {
+          const subtotal = orders.reduce((sum, order) => sum + Number(order.total), 0);
+          const codes = orders.map((order) => `#${escapeHtml(order.code)}`).join(', ');
+          return `
+            <div class="billing-queue-item">
+              <strong>Table ${table}</strong>
+              <button class="btn btn-primary btn-sm" type="button" data-action="create-table-bill" data-table="${table}">Prepare bill</button>
+              <span class="billing-queue-detail">${orders.length} completed ${orders.length === 1 ? 'order' : 'orders'} · ${escapeHtml(window.billingCurrency || '₹')}${subtotal.toFixed(2)}</span>
+              <span class="billing-queue-detail">${codes}</span>
+            </div>
+          `;
+        }).join('')}
+      `;
+    }
+
+    if (billsList.length === 0) {
+      billsHistory.innerHTML = '<div class="billing-empty">Bills you prepare will be listed here.</div>';
+    } else {
+      billsHistory.innerHTML = billsList.map((bill) => `
+        <button class="billing-history-item ${bill.id === selectedBillId ? 'is-selected' : ''}" type="button" data-action="select-bill" data-bill-id="${escapeHtml(bill.id)}" aria-pressed="${bill.id === selectedBillId}">
+          <span>
+            <strong>${escapeHtml(bill.code)} · Table ${bill.table}</strong><br>
+            <span class="billing-history-meta">${escapeHtml((bill.orderCodes || []).map((code) => `#${code}`).join(', '))}</span>
+          </span>
+          <span>
+            <span class="billing-state ${bill.status === 'finalized' ? 'is-finalized' : bill.status === 'void' ? 'is-void' : ''}">${escapeHtml(bill.status)}</span><br>
+            <strong>${escapeHtml(bill.currency)}${Number(bill.total).toFixed(2)}</strong>
+          </span>
+        </button>
+      `).join('');
+    }
+
+    const selectedBill = billsList.find((bill) => bill.id === selectedBillId);
+    if (!selectedBill) {
+      billPrintArea.innerHTML = '<div class="billing-empty">Select a table or bill to review its itemized total.</div>';
+      return;
+    }
+    renderBillDetail(selectedBill);
+  }
+
+  async function createTableBill(table) {
+    const staffName = document.getElementById('billingCreateStaff');
+    if (!staffName || !staffName.value.trim()) {
+      showToast('Enter the staff member’s name before preparing a bill.', 'error');
+      if (staffName) staffName.focus();
+      return;
+    }
+    try {
+      const res = await fetch('/api/admin/bills', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table, staffName: staffName.value.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not prepare this bill.');
+      selectedBillId = data.bill.id;
+      showToast(`${data.bill.code} prepared from completed orders.`, 'success');
+      await loadBills();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  function renderBillDetail(bill) {
+    const editable = bill.status === 'draft';
+    const currency = escapeHtml(bill.currency || '₹');
+    const activeItems = bill.items.filter((item) => item.qty > 0);
+    const itemRows = bill.items.filter((item) => editable || item.qty > 0).map((item) => `
+      <tr class="billing-item-row ${item.qty === 0 ? 'is-void' : ''}">
+        <td>
+          ${escapeHtml(item.name)}
+          <div class="billing-muted">${item.manual ? 'Added during billing' : `Order #${escapeHtml(item.orderCode)}`}</div>
+        </td>
+        <td class="bill-number">${currency}${Number(item.price).toFixed(2)}</td>
+        <td class="bill-number">
+          ${editable
+            ? `<input type="number" min="0" max="20" step="1" value="${item.qty}" data-bill-quantity aria-label="Quantity of ${escapeHtml(item.name)}">`
+            : `<span>${item.qty}</span>`}
+          ${item.qty === 0 ? '<div class="billing-muted">Removed</div>' : ''}
+        </td>
+        <td class="bill-number bill-line-total">${currency}${(Number(item.price) * item.qty).toFixed(2)}</td>
+        ${editable ? `<td class="billing-no-print"><button class="btn btn-outline btn-sm" type="button" data-action="update-bill-quantity" data-line-id="${escapeHtml(item.id)}">Save qty</button></td>` : ''}
+      </tr>
+    `).join('');
+    const auditRows = (bill.adjustments || []).slice().reverse().map((entry) => {
+      const action = entry.type === 'quantity_changed'
+        ? `${escapeHtml(entry.itemName)} quantity ${entry.before} → ${entry.after}`
+        : entry.type === 'item_added'
+        ? `Added ${escapeHtml(entry.quantity)} × ${escapeHtml(entry.itemName)}`
+        : entry.type === 'bill_created'
+        ? `Bill created from orders ${(entry.orderCodes || []).map((code) => `#${escapeHtml(code)}`).join(', ')}`
+        : entry.type === 'bill_voided'
+        ? 'Draft bill voided'
+        : 'Bill finalized';
+      return `<li><strong>${escapeHtml(entry.staffName)} · ${new Date(entry.at).toLocaleString()}</strong><span>${action}${entry.reason ? ` — ${escapeHtml(entry.reason)}` : ''}</span></li>`;
+    }).join('');
+
+    billPrintArea.innerHTML = `
+      <div class="billing-detail-header">
+        <div>
+          <h3>${escapeHtml(bill.restaurantName)}</h3>
+          <div class="billing-muted">${escapeHtml(bill.outletName || '')}</div>
+          <p class="billing-muted">Bill ${escapeHtml(bill.code)} · Table ${bill.table}</p>
+          <p class="billing-muted">Issued: ${new Date(bill.finalizedAt || bill.createdAt).toLocaleString()}</p>
+        </div>
+        <div class="billing-no-print" style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+          <span class="billing-state ${bill.status === 'finalized' ? 'is-finalized' : bill.status === 'void' ? 'is-void' : ''}">${escapeHtml(bill.status)}</span>
+          ${bill.status === 'finalized'
+            ? '<button class="btn btn-outline btn-sm" type="button" data-action="print-bill">Print bill</button>'
+            : '<span class="billing-muted">Finalize to print</span>'}
+        </div>
+      </div>
+      <p class="billing-muted">Orders included: ${(bill.orderCodes || []).map((code) => `#${escapeHtml(code)}`).join(', ')}</p>
+      <div class="billing-table-wrap">
+      <table class="billing-items">
+        <thead><tr><th>Item</th><th>Price</th><th>Qty</th><th>Amount</th>${editable ? '<th class="billing-no-print">Action</th>' : ''}</tr></thead>
+        <tbody>${itemRows || '<tr><td colspan="5">No bill items.</td></tr>'}</tbody>
+      </table>
+      </div>
+      <div class="billing-totals">
+        <div class="billing-total-row"><span>Item subtotal</span><strong>${currency}${Number(bill.subtotal).toFixed(2)}</strong></div>
+        <div class="billing-total-row"><span>Service charge (${Number(bill.serviceChargeRate).toFixed(2)}%)</span><span>${currency}${Number(bill.serviceCharge).toFixed(2)}</span></div>
+        <div class="billing-total-row"><span>Tax (${Number(bill.taxRate).toFixed(2)}%)</span><span>${currency}${Number(bill.tax).toFixed(2)}</span></div>
+        <div class="billing-total-row is-grand-total"><span>Total</span><strong>${currency}${Number(bill.total).toFixed(2)}</strong></div>
+      </div>
+      ${editable ? `
+        <form class="billing-adjustment-form billing-no-print" id="addBillItemForm">
+          <div class="form-group billing-wide-field">
+            <label class="form-label" for="billStaffName">Staff name</label>
+            <input class="form-input" id="billStaffName" maxlength="60" autocomplete="name" required>
+          </div>
+          <div class="form-group billing-wide-field">
+            <label class="form-label" for="billAdjustmentReason">Reason for each correction or added item</label>
+            <input class="form-input" id="billAdjustmentReason" maxlength="240" required placeholder="For example: one portion was not served">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="billAddItem">Add menu item</label>
+            <select class="form-input" id="billAddItem" required>
+              <option value="">Choose an available item</option>
+              ${availableBillItems.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)} · ${currency}${Number(item.price).toFixed(2)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="billAddQuantity">Quantity</label>
+            <input class="form-input" id="billAddQuantity" type="number" min="1" max="20" step="1" value="1" required>
+          </div>
+          <button class="btn btn-outline billing-wide-field" type="submit">Add item with audit note</button>
+        </form>
+        <div class="billing-no-print" style="display:flex; justify-content:flex-end; margin-top:16px;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-outline" type="button" data-action="void-bill" data-bill-id="${escapeHtml(bill.id)}">Void draft</button>
+            <button class="btn btn-primary" type="button" data-action="finalize-bill" data-bill-id="${escapeHtml(bill.id)}" ${activeItems.length ? '' : 'disabled'}>Finalize bill</button>
+          </div>
+        </div>
+        <p class="billing-notice billing-no-print">Finalizing locks this bill and its totals. Corrections can no longer be made.</p>
+      ` : bill.status === 'finalized' ? `
+        <p class="billing-muted billing-no-print">Finalized by ${escapeHtml(bill.finalizedBy || '')} on ${new Date(bill.finalizedAt).toLocaleString()}.</p>
+      ` : `
+        <p class="billing-muted billing-no-print">Voided by ${escapeHtml(bill.voidedBy || '')} on ${new Date(bill.voidedAt).toLocaleString()}.</p>
+      `}
+      <h4 class="billing-no-print" style="margin:20px 0 0;">Audit history</h4>
+      <ul class="billing-audit billing-no-print">${auditRows || '<li>No changes recorded.</li>'}</ul>
+      <p class="billing-notice billing-no-print">This itemized bill records charges only; it does not collect or record payment. Tax is calculated on the item subtotal. Confirm rates and tax treatment for your location.</p>
+    `;
+
+    const addBillItemForm = document.getElementById('addBillItemForm');
+    if (addBillItemForm) {
+      addBillItemForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        addBillItem(bill.id);
+      });
+    }
+  }
+
+  function billAdjustmentCredentials() {
+    const staffName = document.getElementById('billStaffName');
+    const reason = document.getElementById('billAdjustmentReason');
+    if (!staffName || !staffName.value.trim()) throw new Error('Enter the staff member’s name.');
+    if (!reason || !reason.value.trim()) throw new Error('Enter a reason for this bill adjustment.');
+    return { staffName: staffName.value.trim(), reason: reason.value.trim() };
+  }
+
+  async function updateBillQuantity(lineId, quantity) {
+    try {
+      const credentials = billAdjustmentCredentials();
+      const res = await fetch(`/api/admin/bills/${encodeURIComponent(selectedBillId)}/adjustments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...credentials, action: 'set-quantity', lineId, quantity })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not update this bill item.');
+      await loadBills();
+      showToast('Quantity correction recorded in the bill audit.', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  async function addBillItem(billId) {
+    try {
+      const credentials = billAdjustmentCredentials();
+      const res = await fetch(`/api/admin/bills/${encodeURIComponent(billId)}/adjustments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...credentials,
+          action: 'add-item',
+          itemId: document.getElementById('billAddItem').value,
+          quantity: Number(document.getElementById('billAddQuantity').value)
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not add this bill item.');
+      await loadBills();
+      showToast('Added item and reason saved to the bill audit.', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  async function finalizeBill(billId) {
+    if (!confirm('Finalize this bill? It will be locked against further changes.')) return;
+    const staffName = document.getElementById('billStaffName');
+    if (!staffName || !staffName.value.trim()) {
+      showToast('Enter the staff member’s name before finalizing.', 'error');
+      if (staffName) staffName.focus();
+      return;
+    }
+    try {
+      const res = await fetch(`/api/admin/bills/${encodeURIComponent(billId)}/finalize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staffName: staffName.value.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not finalize this bill.');
+      await loadBills();
+      showToast(`${data.bill.code} finalized and locked.`, 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  async function voidBill(billId) {
+    if (!confirm('Void this draft bill? Its orders will become available for a new bill.')) return;
+    try {
+      const credentials = billAdjustmentCredentials();
+      const res = await fetch(`/api/admin/bills/${encodeURIComponent(billId)}/void`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(credentials)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not void this draft bill.');
+      await loadBills();
+      showToast(`${data.bill.code} voided; its orders are ready for a new bill.`, 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
 
   /* ------------------------------------------------------------- */
   /*  Tab 2: Menu Management                                       */
@@ -963,6 +1301,8 @@
   const settingOutletName = document.getElementById('settingOutletName');
   const settingTagline = document.getElementById('settingTagline');
   const settingCurrency = document.getElementById('settingCurrency');
+  const settingTaxRate = document.getElementById('settingTaxRate');
+  const settingServiceChargeRate = document.getElementById('settingServiceChargeRate');
   const settingTableCount = document.getElementById('settingTableCount');
   const settingFooterNote = document.getElementById('settingFooterNote');
 
@@ -978,6 +1318,9 @@
       settingOutletName.value = s.outletName || '';
       settingTagline.value = s.tagline || '';
       settingCurrency.value = s.currency || '₹';
+      settingTaxRate.value = Number(s.taxRate || 0);
+      settingServiceChargeRate.value = Number(s.serviceChargeRate || 0);
+      window.billingCurrency = s.currency || '₹';
       settingTableCount.value = s.tableCount || 17;
       settingFooterNote.value = s.footerNote || '';
 
@@ -994,6 +1337,8 @@
       outletName: settingOutletName.value.trim(),
       tagline: settingTagline.value.trim(),
       currency: settingCurrency.value.trim(),
+      taxRate: Number(settingTaxRate.value),
+      serviceChargeRate: Number(settingServiceChargeRate.value),
       tableCount: parseInt(settingTableCount.value, 10),
       footerNote: settingFooterNote.value.trim()
     };
