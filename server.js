@@ -28,6 +28,8 @@ const DEFAULT_SETTINGS = {
   currency: '\u20b9',
   tableCount: 17,
   orderingOpen: true,
+  taxRate: 0,
+  serviceChargeRate: 0,
   footerNote: 'Demo menu. Prices in INR. Tell your server about allergies. Independent demo - not affiliated with or endorsed by Barbeque Nation.',
 };
 
@@ -39,6 +41,7 @@ function seedData() {
   return {
     settings: { ...DEFAULT_SETTINGS },
     orderSeq: 1000,
+    billSeq: 2000,
     categories: [
       { id: 'grills', name: 'From the grill', sort: 1 },
       { id: 'curries', name: 'Curries & mains', sort: 2 },
@@ -108,6 +111,8 @@ function loadDb() {
           }))
         : [],
       serviceRequests: Array.isArray(parsed.serviceRequests) ? parsed.serviceRequests : [],
+      bills: Array.isArray(parsed.bills) ? parsed.bills : [],
+      billSeq: Number.isInteger(parsed.billSeq) && parsed.billSeq >= 2000 ? parsed.billSeq : 2000,
     };
     return result;
   } catch (err) {
@@ -303,6 +308,54 @@ function publicServiceRequest(request, includeGuestToken = false) {
   };
   if (includeGuestToken) publicData.guestToken = request.guestToken;
   return publicData;
+}
+
+function billTotals(bill, taxRate = db.settings.taxRate, serviceChargeRate = db.settings.serviceChargeRate) {
+  const subtotal = money(bill.items.reduce((sum, item) => sum + item.price * item.qty, 0));
+  const serviceCharge = money(subtotal * serviceChargeRate / 100);
+  const tax = money(subtotal * taxRate / 100);
+  return {
+    subtotal,
+    taxRate,
+    tax,
+    serviceChargeRate,
+    serviceCharge,
+    total: money(subtotal + tax + serviceCharge),
+  };
+}
+
+function publicBill(bill) {
+  const totals = ['finalized', 'void'].includes(bill.status) && bill.totals
+    ? bill.totals
+    : billTotals(bill);
+  return {
+    id: bill.id,
+    code: bill.code,
+    table: bill.table,
+    status: bill.status,
+    orderIds: bill.orderIds,
+    orderCodes: bill.orderCodes,
+    items: bill.items,
+    adjustments: bill.adjustments,
+    createdAt: bill.createdAt,
+    createdBy: bill.createdBy,
+    finalizedAt: bill.finalizedAt || null,
+    finalizedBy: bill.finalizedBy || null,
+    voidedAt: bill.voidedAt || null,
+    voidedBy: bill.voidedBy || null,
+    restaurantName: bill.restaurantName || db.settings.restaurantName,
+    outletName: bill.outletName || db.settings.outletName,
+    currency: bill.currency || db.settings.currency,
+    ...totals,
+  };
+}
+
+function percentage(value, field) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0 || number > 100) {
+    throw new HttpError(400, `${field} must be between 0 and 100.`);
+  }
+  return Math.round(number * 100) / 100;
 }
 
 function money(value) {
@@ -608,6 +661,10 @@ app.patch('/api/admin/orders/:id', requireAdmin, (req, res, next) => {
   try {
     const order = db.orders.find((entry) => entry.id === req.params.id);
     if (!order) throw new HttpError(404, 'Order not found.');
+    if ((db.bills || []).some((bill) =>
+      bill.status !== 'void' && bill.orderIds && bill.orderIds.includes(order.id))) {
+      throw new HttpError(409, 'This order is already included in a bill and can no longer be changed.');
+    }
     const status = req.body && req.body.status;
     if (!STATUSES.includes(status)) throw new HttpError(400, 'Unknown order status.');
     const requestedHandoff = req.body && req.body.handoff;
@@ -645,6 +702,218 @@ app.patch('/api/admin/orders/:id', requireAdmin, (req, res, next) => {
     }
     if (handoffChanged || statusChanged) saveDb();
     res.json({ order: publicOrder(order) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* ---------- Admin billing ---------- */
+
+app.get('/api/admin/bills', requireAdmin, (req, res) => {
+  const billedOrderIds = new Set((db.bills || [])
+    .filter((bill) => bill.status !== 'void')
+    .flatMap((bill) => bill.orderIds || []));
+  const eligibleOrders = db.orders
+    .filter((order) => order.status === 'completed' && !billedOrderIds.has(order.id))
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+    .map((order) => ({
+      id: order.id,
+      code: order.code,
+      table: order.table,
+      total: order.total,
+      createdAt: order.createdAt,
+    }));
+  const items = db.items
+    .filter((item) => item.available)
+    .map((item) => ({ id: item.id, name: item.name, price: item.price }));
+  res.json({
+    bills: [...(db.bills || [])]
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .map(publicBill),
+    eligibleOrders,
+    availableItems: items,
+    settings: {
+      restaurantName: db.settings.restaurantName,
+      outletName: db.settings.outletName,
+      currency: db.settings.currency,
+      taxRate: db.settings.taxRate,
+      serviceChargeRate: db.settings.serviceChargeRate,
+    },
+  });
+});
+
+app.post('/api/admin/bills', requireAdmin, (req, res, next) => {
+  try {
+    db.bills = db.bills || [];
+    const table = Number(req.body && req.body.table);
+    if (!Number.isInteger(table) || table < 1 || table > db.settings.tableCount) {
+      throw new HttpError(400, 'Please choose a valid table.');
+    }
+    const createdBy = asString(req.body && req.body.staffName, 'Staff name', { max: 60 });
+    if (db.bills.some((bill) => bill.table === table && bill.status === 'draft')) {
+      throw new HttpError(409, 'This table already has a draft bill. Open it to continue.');
+    }
+    const billedOrderIds = new Set(db.bills
+      .filter((bill) => bill.status !== 'void')
+      .flatMap((bill) => bill.orderIds || []));
+    const orders = db.orders.filter((order) =>
+      order.table === table && order.status === 'completed' && !billedOrderIds.has(order.id));
+    if (orders.length === 0) throw new HttpError(409, 'There are no completed, unbilled orders for this table.');
+
+    const now = new Date().toISOString();
+    db.billSeq = Math.max(2000, Number(db.billSeq) || 2000) + 1;
+    const bill = {
+      id: crypto.randomUUID(),
+      code: `B-${db.billSeq}`,
+      table,
+      status: 'draft',
+      orderIds: orders.map((order) => order.id),
+      orderCodes: orders.map((order) => order.code),
+      items: orders.flatMap((order) => order.items.map((item) => ({
+        id: crypto.randomUUID(),
+        orderId: order.id,
+        orderCode: order.code,
+        itemId: item.id,
+        name: item.name,
+        price: item.price,
+        qty: item.qty,
+        orderedQty: item.qty,
+        manual: false,
+      }))),
+      adjustments: [{
+        type: 'bill_created',
+        staffName: createdBy,
+        at: now,
+        orderCodes: orders.map((order) => order.code),
+      }],
+      createdAt: now,
+      createdBy,
+      finalizedAt: null,
+      finalizedBy: null,
+      voidedAt: null,
+      voidedBy: null,
+      restaurantName: db.settings.restaurantName,
+      outletName: db.settings.outletName,
+      currency: db.settings.currency,
+      totals: null,
+    };
+    db.bills.push(bill);
+    saveDb();
+    res.status(201).json({ bill: publicBill(bill) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/api/admin/bills/:id/adjustments', requireAdmin, (req, res, next) => {
+  try {
+    const bill = (db.bills || []).find((entry) => entry.id === req.params.id);
+    if (!bill) throw new HttpError(404, 'Bill not found.');
+    if (bill.status !== 'draft') throw new HttpError(409, 'Finalized bills cannot be changed.');
+    const body = req.body || {};
+    const staffName = asString(body.staffName, 'Staff name', { max: 60 });
+    const reason = asString(body.reason, 'Reason', { max: 240 });
+    const now = new Date().toISOString();
+
+    if (body.action === 'set-quantity') {
+      const item = bill.items.find((entry) => entry.id === body.lineId);
+      if (!item) throw new HttpError(404, 'Bill item not found.');
+      const quantity = Number(body.quantity);
+      if (!Number.isInteger(quantity) || quantity < 0 || quantity > 20) {
+        throw new HttpError(400, 'Quantity must be a whole number from 0 to 20.');
+      }
+      if (quantity === item.qty) throw new HttpError(400, 'Enter a different quantity to record a correction.');
+      bill.adjustments.push({
+        type: 'quantity_changed',
+        lineId: item.id,
+        itemName: item.name,
+        before: item.qty,
+        after: quantity,
+        staffName,
+        reason,
+        at: now,
+      });
+      item.qty = quantity;
+    } else if (body.action === 'add-item') {
+      const itemId = asString(body.itemId, 'Menu item', { max: 100 });
+      const quantity = Number(body.quantity);
+      if (!Number.isInteger(quantity) || quantity < 1 || quantity > 20) {
+        throw new HttpError(400, 'Added quantity must be a whole number from 1 to 20.');
+      }
+      const menuItem = db.items.find((entry) => entry.id === itemId && entry.available);
+      if (!menuItem) throw new HttpError(400, 'Choose an available menu item.');
+      const billItem = {
+        id: crypto.randomUUID(),
+        orderId: null,
+        orderCode: null,
+        itemId: menuItem.id,
+        name: menuItem.name,
+        price: menuItem.price,
+        qty: quantity,
+        orderedQty: 0,
+        manual: true,
+      };
+      bill.items.push(billItem);
+      bill.adjustments.push({
+        type: 'item_added',
+        lineId: billItem.id,
+        itemName: billItem.name,
+        quantity,
+        price: billItem.price,
+        staffName,
+        reason,
+        at: now,
+      });
+    } else {
+      throw new HttpError(400, 'Choose a valid bill adjustment.');
+    }
+
+    saveDb();
+    res.json({ bill: publicBill(bill) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/api/admin/bills/:id/finalize', requireAdmin, (req, res, next) => {
+  try {
+    const bill = (db.bills || []).find((entry) => entry.id === req.params.id);
+    if (!bill) throw new HttpError(404, 'Bill not found.');
+    if (bill.status !== 'draft') throw new HttpError(409, 'This bill has already been finalized.');
+    if (!bill.items.some((item) => item.qty > 0)) throw new HttpError(400, 'A bill must include at least one item.');
+    const staffName = asString(req.body && req.body.staffName, 'Staff name', { max: 60 });
+    const now = new Date().toISOString();
+    const totals = billTotals(bill);
+    bill.status = 'finalized';
+    bill.finalizedAt = now;
+    bill.finalizedBy = staffName;
+    bill.restaurantName = db.settings.restaurantName;
+    bill.outletName = db.settings.outletName;
+    bill.currency = db.settings.currency;
+    bill.totals = totals;
+    bill.adjustments.push({ type: 'bill_finalized', staffName, at: now });
+    saveDb();
+    res.json({ bill: publicBill(bill) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/api/admin/bills/:id/void', requireAdmin, (req, res, next) => {
+  try {
+    const bill = (db.bills || []).find((entry) => entry.id === req.params.id);
+    if (!bill) throw new HttpError(404, 'Bill not found.');
+    if (bill.status !== 'draft') throw new HttpError(409, 'Only draft bills can be voided.');
+    const staffName = asString(req.body && req.body.staffName, 'Staff name', { max: 60 });
+    const reason = asString(req.body && req.body.reason, 'Reason', { max: 240 });
+    const now = new Date().toISOString();
+    bill.status = 'void';
+    bill.voidedAt = now;
+    bill.voidedBy = staffName;
+    bill.totals = billTotals(bill);
+    bill.adjustments.push({ type: 'bill_voided', staffName, reason, at: now });
+    saveDb();
+    res.json({ bill: publicBill(bill) });
   } catch (err) {
     next(err);
   }
@@ -854,6 +1123,8 @@ app.patch('/api/admin/settings', requireAdmin, (req, res, next) => {
     if (body.tagline !== undefined) db.settings.tagline = asString(body.tagline, 'Tagline', { max: 100, required: false });
     if (body.currency !== undefined) db.settings.currency = asString(body.currency, 'Currency symbol', { max: 6 });
     if (body.footerNote !== undefined) db.settings.footerNote = asString(body.footerNote, 'Footer note', { max: 200, required: false });
+    if (body.taxRate !== undefined) db.settings.taxRate = percentage(body.taxRate, 'Tax rate');
+    if (body.serviceChargeRate !== undefined) db.settings.serviceChargeRate = percentage(body.serviceChargeRate, 'Service charge rate');
     if (body.tableCount !== undefined) {
       const count = Number(body.tableCount);
       if (!Number.isInteger(count) || count < 1 || count > 100) throw new HttpError(400, 'Table count must be between 1 and 100.');

@@ -31,6 +31,8 @@
   - The staff page is not linked from guest-facing pages. Open it directly at `/admin404`; `/admin` and `/admin.html` return 404. The URL is not secret, so the staff PIN remains essential.
   - Sign-out does not close ordering; staff control guest ordering separately.
   - **Live Orders Queue**: Instant order cards with elapsed timers, highlighted kitchen instructions, and one-click status transitions.
+  - **Table Billing**: Combine completed orders into a printable itemized bill. Staff may correct quantities or add available menu items with a required name and reason; original orders remain unchanged, draft bills can be voided with an audit reason, and finalized bills lock their totals.
+  - **Configurable Charges**: Set tax and service-charge percentages in Settings. Tax is calculated on the item subtotal; confirm local tax requirements and rates before using bills operationally.
   - **Synthesized Kitchen Audio Chime**: Audible alert using Web Audio API when a new table order arrives.
   - **Menu Management**: Full CRUD for dishes & categories with instantaneous "In Stock / Sold Out" toggles.
   - **Tables & QR Generator**: Dynamically generates QR SVGs for every table, allows one-click link copying, SVG downloads, and printable sheets.
@@ -99,6 +101,8 @@ The included `render.yaml` configures a free Render web service for presenting t
 5. Open the staff login at `<your-render-service-url>/admin404`. The route itself is not secret; access is protected by `ADMIN_PIN`.
 
 **Free-demo limitations:** Render free web services sleep after 15 minutes without traffic and can take about a minute to wake. Their filesystem is temporary, so menu edits and orders can be lost when the service sleeps, restarts, or redeploys. Use this free setup for a demo only, not for restaurant operations or customer order records. Durable data requires a paid Render service with persistent storage or a separate database.
+
+The billing feature is an itemized bill generator only; it does not collect or track payment. Adjustment names are typed by staff and are not independently verified because the dashboard uses a shared passcode. Bills are stored with the same JSON data as orders, so use durable storage before relying on them for live restaurant operations. Tax is applied to the item subtotal; this prototype does not determine legal tax treatment.
 
 ## 🔒 Security Checks
 
